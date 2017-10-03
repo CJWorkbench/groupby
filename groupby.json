@@ -6,7 +6,7 @@
   "icon": "group",
   "parameters": [
     {
-      "name": "Group by (None to group the entire table)",
+      "name": "Group by",
       "id_name" : "groupby",
       "type": "column"
     },
@@ -18,7 +18,7 @@
       "default": "0"
     },
     {
-      "name": "Target Column",
+      "name": "Operation target",
       "id_name" : "targetcolumn",
       "type": "column"
     }
