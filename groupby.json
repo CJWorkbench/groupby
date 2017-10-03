@@ -1,0 +1,26 @@
+{
+  "name": "Group by Column",
+  "id_name": "groupby",
+  "description": "Group rows by unique values in a specific column and apply operation to all the values of a secondary one.",
+  "category" : "Group",
+  "icon": "group",
+  "parameters": [
+    {
+      "name": "Group by",
+      "id_name" : "groupby",
+      "type": "column"
+    },
+    {
+      "name": "Operation",
+      "id_name" : "operation",
+      "type" : "menu",
+      "menu_items" : "Count|Average|Sum|Min|Max",
+      "default": "0"
+    },
+    {
+      "name": "Target Column",
+      "id_name" : "targetcolumn",
+      "type": "column"
+    }
+  ]
+}
