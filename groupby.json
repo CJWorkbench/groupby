@@ -1,5 +1,5 @@
 {
-  "name": "Group by Column",
+  "name": "Group",
   "id_name": "groupby",
   "description": "Group rows in a specific column and apply operation to a secondary one.",
   "category" : "Analyse",
