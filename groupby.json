@@ -1,8 +1,8 @@
 {
   "name": "Group by Column",
   "id_name": "groupby",
-  "description": "Group rows by unique values in a specific column and apply operation to all the values of a secondary one.",
-  "category" : "Group",
+  "description": "Group rows in a specific column and apply operation to a secondary one.",
+  "category" : "Analyse",
   "icon": "group",
   "parameters": [
     {
