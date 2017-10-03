@@ -6,7 +6,7 @@
   "icon": "group",
   "parameters": [
     {
-      "name": "Group by",
+      "name": "Group by (None to group the entire table)",
       "id_name" : "groupby",
       "type": "column"
     },
