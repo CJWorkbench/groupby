@@ -23,7 +23,7 @@ class Importable:
             return table
         else:
             # if target column is not a numeric type, tries to convert it (before any aggregation)
-            if targetcolumn != '' and (table[targetcolumn].dtype != np.float64 and table[targetcolumn].dtype != np.int64:
+            if targetcolumn != '' and (table[targetcolumn].dtype != np.float64 and table[targetcolumn].dtype != np.int64):
                 table[targetcolumn] = table[targetcolumn].str.replace(',', '')
                 table[targetcolumn] = table[targetcolumn].astype(float)
             # if operation must be performed on the entire table...
