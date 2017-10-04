@@ -45,7 +45,10 @@ class Importable:
                 newtab.columns = [targetcolumn]
             else:
                 if operation == 0: # count
-                    newtab = table.groupby([groupby])[[targetcolumn]].count()
+                    if targetcolumn == '':
+                        newtab = table.groupby([groupby])[[targetcolumn]].count()
+                    else:
+                        newtab = table.groupby([groupby]).count()
                 elif operation == 1: # average
                     newtab = table.groupby([groupby])[[targetcolumn]].mean()
                 elif operation == 2: # sum
