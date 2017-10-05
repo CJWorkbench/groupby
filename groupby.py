@@ -45,12 +45,8 @@ class Importable:
                 newtab.columns = [targetcolumn]
             else:
                 if operation == 0: # count
-                    if targetcolumn == '':
-                        print("group by 1")
                         newtab = table.groupby([groupby])[[groupby]].count()
-                    else:
-                        print("group by 2")
-                        newtab = table.groupby([groupby])[[targetcolumn]].count()
+                        newtab.columns = ['count'] # otherwise index name and count column name are the same, error on reset_index below
                 elif operation == 1: # average
                     newtab = table.groupby([groupby])[[targetcolumn]].mean()
                 elif operation == 2: # sum
