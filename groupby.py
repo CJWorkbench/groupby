@@ -18,7 +18,7 @@ class Importable:
         targetcolumn = wf_module.get_param_column('targetcolumn')
 
         # while the user has not provided all the parameters, returns full table.
-        if targetcolumn == '' and operation != 0:  # process without target column if counting
+        if groupby == '' or (targetcolumn == '' and operation != 0):  # process without target column if counting
             wf_module.set_ready(notify=False)
             return table
         else:
@@ -26,35 +26,19 @@ class Importable:
             if targetcolumn != '' and (table[targetcolumn].dtype != np.float64 and table[targetcolumn].dtype != np.int64):
                 table[targetcolumn] = table[targetcolumn].str.replace(',', '')
                 table[targetcolumn] = table[targetcolumn].astype(float)
-            # if operation must be performed on the entire table...
-            if groupby == '':
-                if operation == 0: # count
-                    if targetcolumn == '':
-                        # count with no groupby and no target just counts rows in table
-                        newtab = pd.DataFrame([len(table)], columns=['count'])  
-                    else:
-                        newtab = table[[targetcolumn]].count().to_frame()
-                elif operation == 1: # average
-                    newtab = table[[targetcolumn]].mean().to_frame()
-                elif operation == 2: # sum
-                    newtab = table[[targetcolumn]].sum().to_frame()
-                elif operation == 3: # min
-                    newtab = table[[targetcolumn]].min().to_frame()
-                elif operation == 4: # max
-                    newtab = table[[targetcolumn]].max().to_frame()
-                newtab.columns = [targetcolumn]
-            else:
-                if operation == 0: # count
-                        newtab = table.groupby([groupby])[[groupby]].count()
-                        newtab.columns = ['count'] # otherwise index name and count column name are the same, error on reset_index below
-                elif operation == 1: # average
-                    newtab = table.groupby([groupby])[[targetcolumn]].mean()
-                elif operation == 2: # sum
-                    newtab = table.groupby([groupby])[[targetcolumn]].sum()
-                elif operation == 3: # min
-                    newtab = table.groupby([groupby])[[targetcolumn]].min()
-                elif operation == 4: # max
-                    newtab = table.groupby([groupby])[[targetcolumn]].max()
-                newtab.reset_index(level=0, inplace=True)
+           
+            if operation == 0: # count
+                newtab = table.groupby([groupby])[[groupby]].count()
+                newtab.columns = ['count'] # otherwise index name and count column name are the same, error on reset_index below
+            elif operation == 1: # average
+                newtab = table.groupby([groupby])[[targetcolumn]].mean()
+            elif operation == 2: # sum
+                newtab = table.groupby([groupby])[[targetcolumn]].sum()
+            elif operation == 3: # min
+                newtab = table.groupby([groupby])[[targetcolumn]].min()
+            elif operation == 4: # max
+                newtab = table.groupby([groupby])[[targetcolumn]].max()
+            newtab.reset_index(level=0, inplace=True)
+            
             wf_module.set_ready(notify=False)
             return newtab
