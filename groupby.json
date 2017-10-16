@@ -20,7 +20,8 @@
     {
       "name": "Operation target",
       "id_name" : "targetcolumn",
-      "type": "column"
+      "type": "column",
+      "default": "None"
     }
   ]
 }
