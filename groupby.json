@@ -21,7 +21,6 @@
       "name": "Operation target",
       "id_name" : "targetcolumn",
       "type": "column",
-      "default": "None"
     }
   ]
 }
