@@ -5,11 +5,11 @@ def render(table, params):
     targetcolumn = params['targetcolumn']
 
     # while the user has not provided all the parameters, returns full table.
-    if groupby == '' or (targetcolumn == '' and operation != 0):  # process without target column if counting
+    if groupby is None or (targetcolumn is None and operation != 0):  # process without target column if counting
         return table
     else:
         # if target column is not a numeric type, tries to convert it (before any aggregation)
-        if targetcolumn != '' and (table[targetcolumn].dtype != np.float64 and table[targetcolumn].dtype != np.int64):
+        if targetcolumn is not None and (table[targetcolumn].dtype != np.float64 and table[targetcolumn].dtype != np.int64):
             table[targetcolumn] = table[targetcolumn].str.replace(',', '')
             table[targetcolumn] = table[targetcolumn].astype(float)
 
