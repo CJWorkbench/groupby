@@ -1,4 +1,4 @@
-def render(table, parmas):
+def render(table, params):
     # obtain parameters
     groupby = params['groupby']
     operation = params['operation']
