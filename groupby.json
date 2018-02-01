@@ -4,6 +4,7 @@
   "description": "Group rows in a specific column and apply operation to a secondary one.",
   "category" : "Analyse",
   "icon": "group",
+  "help_url":"modules/analyse/group",
   "parameters": [
     {
       "name": "Group by",
