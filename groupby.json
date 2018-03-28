@@ -21,7 +21,7 @@
     {
       "name": "",
       "id_name" : "targetcolumn",
-      "type": "column"
+      "type": "column",
       "visible_if": {
         "invert":true,
         "id_name": "operation",
