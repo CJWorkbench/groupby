@@ -26,6 +26,7 @@
         "invert":true,
         "id_name": "operation",
         "value": "Count"
+      }
     }
   ]
 }
