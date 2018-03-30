@@ -7,26 +7,124 @@
   "help_url":"modules/analyse/group",
   "parameters": [
     {
-      "name": "by",
-      "id_name" : "groupby",
+      "name": "Group by",
+      "id_name" : "groupby|groupby|0",
+      "type": "column"
+    },
+    {
+      "name": "",
+      "id_name" : "active|groupby|1",
+      "type": "checkbox"
+    },
+    {
+      "name": "Group by",
+      "id_name" : "groupby|groupby|1",
       "type": "column"
     },
     {
       "name": "Operation",
-      "id_name" : "operation",
+      "id_name" : "operation|operation|0",
       "type" : "menu",
       "menu_items" : "Count|Average|Sum|Min|Max",
       "default": "0"
     },
     {
       "name": "",
-      "id_name" : "targetcolumn",
-      "type": "column",
-      "visible_if": {
-        "invert":true,
-        "id_name": "operation",
-        "value": "Count"
-      }
+      "id_name" : "targetcolumn|operation|0",
+      "type": "column"
+    },
+    {
+      "name": "Output Name",
+      "id_name" : "outputname|operation|0",
+      "type": "string"
+    },
+    {
+      "name": "",
+      "id_name" : "active|operation|1",
+      "type": "checkbox"
+    },
+    {
+      "name": "Operation",
+      "id_name" : "operation|operation|1",
+      "type" : "menu",
+      "menu_items" : "Count|Average|Sum|Min|Max",
+      "default": "0"
+    },
+    {
+      "name": "",
+      "id_name" : "targetcolumn|operation|1",
+      "type": "column"
+    },
+    {
+      "name": "Output Name",
+      "id_name" : "outputname|operation|1",
+      "type": "string"
+    },
+    {
+      "name": "",
+      "id_name" : "active|operation|2",
+      "type": "checkbox"
+    },
+    {
+      "name": "Operation",
+      "id_name" : "operation|operation|2",
+      "type" : "menu",
+      "menu_items" : "Count|Average|Sum|Min|Max",
+      "default": "0"
+    },
+    {
+      "name": "",
+      "id_name" : "targetcolumn|operation|2",
+      "type": "column"
+    },
+    {
+      "name": "Output Name",
+      "id_name" : "outputname|operation|2",
+      "type": "string"
+    },
+    {
+      "name": "",
+      "id_name" : "active|operation|3",
+      "type": "checkbox"
+    },
+    {
+      "name": "Operation",
+      "id_name" : "operation|operation|3",
+      "type" : "menu",
+      "menu_items" : "Count|Average|Sum|Min|Max",
+      "default": "0"
+    },
+    {
+      "name": "",
+      "id_name" : "targetcolumn|operation|3",
+      "type": "column"
+    },
+    {
+      "name": "Output Name",
+      "id_name" : "outputname|operation|3",
+      "type": "string"
+    },
+    {
+      "name": "",
+      "id_name" : "active|operation|4",
+      "type": "checkbox"
+    },
+    {
+      "name": "Operation",
+      "id_name" : "operation|operation|4",
+      "type" : "menu",
+      "menu_items" : "Count|Average|Sum|Min|Max",
+      "default": "0"
+    },
+    {
+      "name": "",
+      "id_name" : "targetcolumn|operation|4",
+      "type": "column"
+    },
+    {
+      "name": "Output Name",
+      "id_name" : "outputname|operation|4",
+      "type": "string"
     }
   ]
 }
