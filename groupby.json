@@ -47,7 +47,9 @@
       "name": "",
       "id_name" : "outputname|operation|0",
       "type": "string",
-      "placeholder": "Output name"
+      "placeholder": "Output name",
+      "visible": "false"
+      
     },
 
     {
