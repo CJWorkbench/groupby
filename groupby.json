@@ -44,7 +44,7 @@
       }
     },
     {
-      "name": "Output Name",
+      "name": "",
       "id_name" : "outputname|operation|0",
       "type": "string"
     },
@@ -71,7 +71,7 @@
       }
     },
     {
-      "name": "Output Name",
+      "name": "",
       "id_name" : "outputname|operation|1",
       "type": "string",
       "visible_if": {
@@ -118,7 +118,7 @@
       }
     },
     {
-      "name": "Output Name",
+      "name": "",
       "id_name" : "outputname|operation|2",
       "type": "string",
       "visible_if": {
@@ -168,7 +168,7 @@
       }
     },
     {
-      "name": "Output Name",
+      "name": "",
       "id_name" : "outputname|operation|3",
       "type": "string",
       "visible_if": {
@@ -218,7 +218,7 @@
       }
     },
     {
-      "name": "Output Name",
+      "name": "",
       "id_name" : "outputname|operation|4",
       "type": "string",
       "visible_if": {
