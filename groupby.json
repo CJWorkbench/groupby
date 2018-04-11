@@ -48,6 +48,7 @@
       "id_name" : "outputname|operation|0",
       "type": "string",
       "placeholder": "Output name",
+      }
     },
 
     {
