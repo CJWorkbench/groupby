@@ -24,12 +24,7 @@
       "name": "",
       "id_name" : "active.addremove.last|groupby|1",
       "type": "checkbox",
-      "default": false,
-      "visible_if": {
-        "invert": true,
-        "id_name": "groupby|groupby|0",
-        "value": "0"
-      }
+      "default": false
     },
     {
       "name": "Operation",
