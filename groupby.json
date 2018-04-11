@@ -37,7 +37,7 @@
       "name": "",
       "id_name" : "targetcolumn|operation|0",
       "type": "column",
-      "Placeholder": "Output name",
+      "placeholder": "Output name",
       "visible_if": {
         "invert": true,
         "id_name": "operation|operation|0",
