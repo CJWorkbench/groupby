@@ -75,7 +75,6 @@
       "name": "",
       "id_name" : "outputname|operation|1",
       "type": "string",
-      "visible": "false",
       "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove|operation|1",
