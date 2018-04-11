@@ -12,7 +12,7 @@
       "type": "column"
     },
     {
-      "name": "Group by",
+      "name": "",
       "id_name" : "groupby|groupby|1",
       "type": "column",
       "visible_if": {
