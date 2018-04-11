@@ -37,7 +37,6 @@
       "name": "",
       "id_name" : "targetcolumn|operation|0",
       "type": "column",
-      "placeholder": "Output name",
       "visible_if": {
         "invert": true,
         "id_name": "operation|operation|0",
@@ -48,6 +47,7 @@
       "name": "",
       "id_name" : "outputname|operation|0",
       "type": "string"
+      "placeholder": "Output name",
     },
 
     {
@@ -75,6 +75,7 @@
       "name": "",
       "id_name" : "outputname|operation|1",
       "type": "string",
+      "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove|operation|1",
         "value": true
@@ -122,6 +123,7 @@
       "name": "",
       "id_name" : "outputname|operation|2",
       "type": "string",
+      "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove|operation|2",
         "value": true
@@ -172,6 +174,7 @@
       "name": "",
       "id_name" : "outputname|operation|3",
       "type": "string",
+      "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove|operation|3",
         "value": true
@@ -222,6 +225,7 @@
       "name": "",
       "id_name" : "outputname|operation|4",
       "type": "string",
+      "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove.last|operation|4",
         "value": true
