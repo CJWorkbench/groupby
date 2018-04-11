@@ -99,7 +99,7 @@
     },
 
     {
-      "name": "Operation",
+      "name": "Operation 2",
       "id_name" : "operation.show-sibling|operation|2",
       "type" : "menu",
       "menu_items" : "Count|Average|Sum|Min|Max",
@@ -150,7 +150,7 @@
       }
     },
     {
-      "name": "Operation",
+      "name": "Operation 3",
       "id_name" : "operation.show-sibling|operation|3",
       "type" : "menu",
       "menu_items" : "Count|Average|Sum|Min|Max",
@@ -201,7 +201,7 @@
       }
     },
     {
-      "name": "Operation",
+      "name": "Operation 4",
       "id_name" : "operation.show-sibling|operation|4",
       "type" : "menu",
       "menu_items" : "Count|Average|Sum|Min|Max",
