@@ -57,7 +57,7 @@ class TestFilter(unittest.TestCase):
         out_table = pd.DataFrame([
             ['bread', 4],
             ['roses', 3]
-        ], columns=['a', 'count'])
+        ], columns=['a', 'Group Size'])
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
@@ -71,7 +71,7 @@ class TestFilter(unittest.TestCase):
             ['bread', 'liberty', 2],
             ['roses', 'death', 1],
             ['roses', 'liberty', 2],
-        ], columns=['a', 'b', 'count'])
+        ], columns=['a', 'b', 'Group Size'])
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
@@ -187,6 +187,34 @@ class TestFilter(unittest.TestCase):
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
+    def test_one_level_count_unique(self):
+        param_copy = defaultparams.copy()
+        param_copy['groupby|groupby|0'] = "a"
+        param_copy['operation|operation|0'] = 5
+        param_copy['targetcolumn|operation|0'] = "d"
+        out_table = pd.DataFrame([
+            ['bread', 2],
+            ['roses', 2]
+        ], columns=['a', 'Count of d'])
+        out = render(self.table, param_copy)
+        self.assertTrue(out.equals(out_table))
+
+    def test_two_level_count_unique(self):
+        param_copy = defaultparams.copy()
+        param_copy['groupby|groupby|0'] = "a"
+        param_copy['groupby|groupby|1'] = "b"
+        param_copy['active.addremove.last|groupby|1'] = True
+        param_copy['operation|operation|0'] = 5
+        param_copy['targetcolumn|operation|0'] = "d"
+        out_table = pd.DataFrame([
+            ['bread', 'death', 2],
+            ['bread', 'liberty', 2],
+            ['roses', 'death', 1],
+            ['roses', 'liberty', 2],
+        ], columns=['a', 'b', 'Count of d'])
+        out = render(self.table, param_copy)
+        self.assertTrue(out.equals(out_table))
+
     def test_two_level_multi_op(self):
         param_copy = defaultparams.copy()
         param_copy['groupby|groupby|0'] = "a"
@@ -200,7 +228,7 @@ class TestFilter(unittest.TestCase):
             ['bread', 'liberty', float(3), 2],
             ['roses', 'death', float('nan'), 1],
             ['roses', 'liberty', float(11), 2],
-        ], columns=['a', 'b', 'Max of c', 'count'])
+        ], columns=['a', 'b', 'Max of c', 'Group Size'])
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
