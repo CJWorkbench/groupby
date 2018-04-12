@@ -12,7 +12,7 @@
       "type": "column"
     },
     {
-      "name": "",
+      "name": "Group by",
       "id_name" : "groupby|groupby|1",
       "type": "column",
       "visible_if": {
@@ -30,7 +30,7 @@
       "name": "Operation",
       "id_name" : "operation|operation|0",
       "type" : "menu",
-      "menu_items" : "Count|Average|Sum|Min|Max",
+      "menu_items" : "Group Size|Average|Sum|Min|Max|Count",
       "default": "0"
     },
     {
@@ -40,21 +40,20 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation|operation|0",
-        "value": "Count"
+        "value": "Group Size"
       }
     },
     {
-      "name": "",
+      "name": "Output Name",
       "id_name" : "outputname|operation|0",
-      "type": "string",
-      "placeholder": "Output name" 
+      "type": "string"
     },
 
     {
       "name": "Operation 2",
       "id_name" : "operation.show-sibling|operation|1",
       "type" : "menu",
-      "menu_items" : "Count|Average|Sum|Min|Max",
+      "menu_items" : "Group Size|Average|Sum|Min|Max|Count",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove|operation|1",
@@ -68,14 +67,13 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|1",
-        "value": "Count"
+        "value": "Group Size"
       }
     },
     {
-      "name": "",
+      "name": "Output Name",
       "id_name" : "outputname|operation|1",
       "type": "string",
-      "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove|operation|1",
         "value": true
@@ -102,7 +100,7 @@
       "name": "Operation 3",
       "id_name" : "operation.show-sibling|operation|2",
       "type" : "menu",
-      "menu_items" : "Count|Average|Sum|Min|Max",
+      "menu_items" : "Group Size|Average|Sum|Min|Max|Count",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove|operation|2",
@@ -116,14 +114,13 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|2",
-        "value": "Count"
+        "value": "Group Size"
       }
     },
     {
-      "name": "",
+      "name": "Output Name",
       "id_name" : "outputname|operation|2",
       "type": "string",
-      "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove|operation|2",
         "value": true
@@ -153,7 +150,7 @@
       "name": "Operation 4",
       "id_name" : "operation.show-sibling|operation|3",
       "type" : "menu",
-      "menu_items" : "Count|Average|Sum|Min|Max",
+      "menu_items" : "Group Size|Average|Sum|Min|Max|Count",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove|operation|3",
@@ -167,14 +164,13 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|3",
-        "value": "Count"
+        "value": "Group Size"
       }
     },
     {
-      "name": "",
+      "name": "Output Name",
       "id_name" : "outputname|operation|3",
       "type": "string",
-      "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove|operation|3",
         "value": true
@@ -204,7 +200,7 @@
       "name": "Operation 5",
       "id_name" : "operation.show-sibling|operation|4",
       "type" : "menu",
-      "menu_items" : "Count|Average|Sum|Min|Max",
+      "menu_items" : "Group Size|Average|Sum|Min|Max|Count",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove.last|operation|4",
@@ -218,14 +214,13 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|4",
-        "value": "Count"
+        "value": "Group Size"
       }
     },
     {
-      "name": "",
+      "name": "Output Name",
       "id_name" : "outputname|operation|4",
       "type": "string",
-      "placeholder": "Output name",
       "visible_if": {
         "id_name": "active.addremove.last|operation|4",
         "value": true

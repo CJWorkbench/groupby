@@ -4,6 +4,7 @@ def render(table, params):
     for k, v in params.items():
         name_parts = k.split('|')
         name_parts[0] = name_parts[0].split('.')[0]
+
         if len(name_parts) > 1:
             try:
                 param_obj[name_parts[1]]
@@ -18,6 +19,7 @@ def render(table, params):
             param_obj[name_parts[1]][name_parts[2]][name_parts[0]] = v
 
     for k, v in param_obj.items():
+        # Turn a dict with numeric keys into an array
         param_obj[k] = [s[1] for s in sorted(v.items(), key=lambda x: x[0])]
 
     # obtain parameters
@@ -33,27 +35,26 @@ def render(table, params):
         columns = [[val, val] for val in groupby_vals]
         agg_dict = {}
         op_names = [
-            ('size', 'Count'),
+            ('size', 'Group Size'),
             ('mean', 'Average'),
             ('sum', 'Sum'),
             ('min', 'Min'),
-            ('max', 'Max')
+            ('max', 'Max'),
+            ('nunique', 'Count')
         ]
-
         for op in param_obj['operation']:
-            operation = op_names[int(op['operation'])][0]
-            label = op_names[int(op['operation'])][1]
+            operation, label = op_names[int(op['operation'])]
             targetcolumn = op.get('targetcolumn', '')
-            active = op.get('active', True)
             outputname = op.get('outputname', None)
+            active = op.get('active', True)
 
-            # If a property 'active' exists and it's not set to True, or the operation name
-            # is set but not the target column, skip this operation
-            if active is not True or (operation != 'size' and targetcolumn == ''):
+            # If the operation name is set but not the target column (except size),
+            # skip this operation
+            if active is False or (operation != 'size' and targetcolumn == ''):
                 continue
 
             # if target column is not a numeric type, tries to convert it (before any aggregation)
-            if targetcolumn != '' and (
+            if targetcolumn != '' and operation != 'nunique' and (
                     table[targetcolumn].dtype != np.float64 and table[targetcolumn].dtype != np.int64):
                 try:
                     table[targetcolumn] = table[targetcolumn].str.replace(',', '')
@@ -61,9 +62,10 @@ def render(table, params):
                 except Exception:
                     return "Can't get " + operation + " of non-numeric column '" + targetcolumn + "'"
 
-            # We have to provide a column name to the size function, but it's irrelevant which one since it just
-            # counts rows, so we provide the first groupby column
-            target_col_name = targetcolumn if (targetcolumn is not '' and operation is not 'size') else columns[0][0]
+            if operation is 'size':
+                target_col_name = columns[0][0]
+            else:
+                target_col_name = targetcolumn
 
             # If the column name doesn't exist as a key in our aggregation dictionary, create it
             try:
@@ -74,7 +76,7 @@ def render(table, params):
             # Check if we're already doing this operation, no reason to do it twice
             if operation not in agg_dict[target_col_name]:
                 agg_dict[target_col_name].append(operation)
-                colstr = '%s_%s' % (target_col_name, operation)
+                colstr = '%s||%s' % (target_col_name, operation)
                 columns.append([colstr, outputname, label])
 
         if agg_dict == {}:
@@ -84,7 +86,7 @@ def render(table, params):
         newtab = newtab.reset_index()
         # Create column names in the shape 'columnname operation', unless the operation is size, in which case
         # just use 'count'
-        newtab.columns = ['%s_%s' % (v[0], v[1]) if v[1] is not '' else v[0] for v in newtab.columns.values]
+        newtab.columns = ['%s||%s' % (v[0], v[1]) if v[1] is not '' else v[0] for v in newtab.columns.values]
         newtab = newtab[[column[0] for column in columns]]
 
         sanitized_column_names = []
@@ -93,11 +95,11 @@ def render(table, params):
             if column[1] is not '':
                 sanitized_column_names.append(column[1])
             else:
-                name_parts = column[0].split('_')
+                name_parts = column[0].split('||')
                 if len(name_parts) == 1:
                     sanitized_column_names.append(name_parts[0])
                 elif name_parts[1] == 'size':
-                    sanitized_column_names.append('count')
+                    sanitized_column_names.append('Group Size')
                 else:
                     sanitized_column_names.append('%s of %s' % (column[2], name_parts[0]))
 
