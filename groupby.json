@@ -40,7 +40,7 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation|operation|0",
-        "value": "Group Size"
+        "value": "Count"
       }
     },
     {
@@ -68,7 +68,7 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|1",
-        "value": "Group Size"
+        "value": "Count"
       }
     },
     {
@@ -102,7 +102,7 @@
       "name": "Operation 3",
       "id_name" : "operation.show-sibling|operation|2",
       "type" : "menu",
-      "menu_items" : "Group Size|Average|Sum|Min|Max|Count",
+      "menu_items" : "Count|Count unique|Sum|Min|Max",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove|operation|2",
@@ -116,7 +116,7 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|2",
-        "value": "Group Size"
+        "value": "Count"
       }
     },
     {
@@ -153,7 +153,7 @@
       "name": "Operation 4",
       "id_name" : "operation.show-sibling|operation|3",
       "type" : "menu",
-      "menu_items" : "Group Size|Average|Sum|Min|Max|Count",
+      "menu_items" : "Count|Count unique|Sum|Min|Max",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove|operation|3",
@@ -167,7 +167,7 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|3",
-        "value": "Group Size"
+        "value": "Count"
       }
     },
     {
@@ -204,7 +204,7 @@
       "name": "Operation 5",
       "id_name" : "operation.show-sibling|operation|4",
       "type" : "menu",
-      "menu_items" : "Group Size|Average|Sum|Min|Max|Count",
+      "menu_items" : "Count|Count unique|Sum|Min|Max",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove.last|operation|4",
@@ -218,7 +218,7 @@
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|4",
-        "value": "Group Size"
+        "value": "Count"
       }
     },
     {
