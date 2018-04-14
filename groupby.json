@@ -46,7 +46,7 @@
     {
       "name": "",
       "id_name" : "outputname|operation|0",
-      "type": "string"
+      "type": "string",
       "placeholder": "Output name"
     },
 
