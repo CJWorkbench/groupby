@@ -36,11 +36,12 @@ def render(table, params):
         agg_dict = {}
         op_names = [
             ('size', 'Count'),
-            ('mean', 'Average'),
+            ('nunique', 'Count unique'),
             ('sum', 'Sum'),
+            ('mean', 'Average'),
             ('min', 'Min'),
             ('max', 'Max'),
-            ('nunique', 'Count unique')
+
         ]
         for op in param_obj['operation']:
             operation, label = op_names[int(op['operation'])]

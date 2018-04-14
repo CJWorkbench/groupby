@@ -78,7 +78,7 @@ class TestFilter(unittest.TestCase):
     def test_one_level_avg(self):
         param_copy = defaultparams.copy()
         param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 1
+        param_copy['operation|operation|0'] = 3
         param_copy['targetcolumn|operation|0'] = "c"
         out_table = pd.DataFrame([
             ['bread', float(sum([3, 3, 4])/3)],
@@ -92,7 +92,7 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 1
+        param_copy['operation|operation|0'] = 3
         param_copy['targetcolumn|operation|0'] = "c"
         out_table = pd.DataFrame([
             ['bread', 'death', float(sum([3, 4])/2)],
@@ -134,7 +134,7 @@ class TestFilter(unittest.TestCase):
     def test_one_level_min(self):
         param_copy = defaultparams.copy()
         param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 3
+        param_copy['operation|operation|0'] = 4
         param_copy['targetcolumn|operation|0'] = "c"
         out_table = pd.DataFrame([
             ['bread', float(3)],
@@ -148,7 +148,7 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 3
+        param_copy['operation|operation|0'] = 4
         param_copy['targetcolumn|operation|0'] = "c"
         out_table = pd.DataFrame([
             ['bread', 'death', float(3)],
@@ -162,7 +162,7 @@ class TestFilter(unittest.TestCase):
     def test_one_level_max(self):
         param_copy = defaultparams.copy()
         param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 4
+        param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
         out_table = pd.DataFrame([
             ['bread', float(4)],
@@ -176,7 +176,7 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 4
+        param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
         out_table = pd.DataFrame([
             ['bread', 'death', float(4)],
@@ -190,7 +190,7 @@ class TestFilter(unittest.TestCase):
     def test_one_level_count_unique(self):
         param_copy = defaultparams.copy()
         param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 5
+        param_copy['operation|operation|0'] = 1
         param_copy['targetcolumn|operation|0'] = "d"
         out_table = pd.DataFrame([
             ['bread', 2],
@@ -204,7 +204,7 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 5
+        param_copy['operation|operation|0'] = 1
         param_copy['targetcolumn|operation|0'] = "d"
         out_table = pd.DataFrame([
             ['bread', 'death', 2],
@@ -220,7 +220,7 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 4
+        param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
         param_copy['active.addremove|operation|1'] = True
         out_table = pd.DataFrame([
@@ -237,7 +237,7 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 4
+        param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
         param_copy['operation|operation|1'] = 2
         param_copy['active.addremove|operation|1'] = True
@@ -255,9 +255,9 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 4
+        param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation|operation|1'] = 3
+        param_copy['operation|operation|1'] = 4
         param_copy['targetcolumn|operation|1'] = "c"
         param_copy['active.addremove|operation|1'] = True
         out_table = pd.DataFrame([
@@ -274,9 +274,9 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 4
+        param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation|operation|1'] = 3
+        param_copy['operation|operation|1'] = 4
         param_copy['targetcolumn|operation|1'] = "e"
         param_copy['active.addremove|operation|1'] = True
         out_table = pd.DataFrame([
@@ -293,9 +293,9 @@ class TestFilter(unittest.TestCase):
         param_copy['groupby|groupby|0'] = "a"
         param_copy['groupby|groupby|1'] = "b"
         param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 3
+        param_copy['operation|operation|0'] = 4
         param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation|operation|1'] = 3
+        param_copy['operation|operation|1'] = 4
         param_copy['targetcolumn|operation|1'] = "e"
         param_copy['active.addremove|operation|1'] = True
         out_table = pd.DataFrame([
@@ -321,7 +321,7 @@ class TestFilter(unittest.TestCase):
     def test_non_numeric_column_error(self):
         param_copy = defaultparams.copy()
         param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 3
+        param_copy['operation|operation|0'] = 4
         param_copy['targetcolumn|operation|0'] = "date"
         out = render(self.table, param_copy)
         self.assertTrue(out == "Can't get min of non-numeric column 'date'")
