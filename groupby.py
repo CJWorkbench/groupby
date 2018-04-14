@@ -35,12 +35,12 @@ def render(table, params):
         columns = [[val, val] for val in groupby_vals]
         agg_dict = {}
         op_names = [
-            ('size', 'Group Size'),
+            ('size', 'Count'),
             ('mean', 'Average'),
             ('sum', 'Sum'),
             ('min', 'Min'),
             ('max', 'Max'),
-            ('nunique', 'Count')
+            ('nunique', 'Count unique')
         ]
         for op in param_obj['operation']:
             operation, label = op_names[int(op['operation'])]

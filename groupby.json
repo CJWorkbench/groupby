@@ -30,7 +30,7 @@
       "name": "Operation",
       "id_name" : "operation|operation|0",
       "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Min|Max",
+      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
       "default": "0"
     },
     {
@@ -54,7 +54,7 @@
       "name": "Operation 2",
       "id_name" : "operation.show-sibling|operation|1",
       "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Min|Max",
+      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove|operation|1",
@@ -102,7 +102,7 @@
       "name": "Operation 3",
       "id_name" : "operation.show-sibling|operation|2",
       "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Min|Max",
+      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove|operation|2",
@@ -153,7 +153,7 @@
       "name": "Operation 4",
       "id_name" : "operation.show-sibling|operation|3",
       "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Min|Max",
+      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove|operation|3",
@@ -204,7 +204,7 @@
       "name": "Operation 5",
       "id_name" : "operation.show-sibling|operation|4",
       "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Min|Max",
+      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
       "default": "0",
       "visible_if": {
         "id_name": "active.addremove.last|operation|4",

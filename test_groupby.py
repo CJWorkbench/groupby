@@ -195,7 +195,7 @@ class TestFilter(unittest.TestCase):
         out_table = pd.DataFrame([
             ['bread', 2],
             ['roses', 2]
-        ], columns=['a', 'Count of d'])
+        ], columns=['a', 'Count unique of d'])
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
@@ -211,7 +211,7 @@ class TestFilter(unittest.TestCase):
             ['bread', 'liberty', 2],
             ['roses', 'death', 1],
             ['roses', 'liberty', 2],
-        ], columns=['a', 'b', 'Count of d'])
+        ], columns=['a', 'b', 'Count unique of d'])
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
