@@ -37,6 +37,7 @@
       "name": "",
       "id_name" : "targetcolumn|operation|0",
       "type": "column",
+      "placeholder": "Select target column",
       "visible_if": {
         "invert": true,
         "id_name": "operation|operation|0",
