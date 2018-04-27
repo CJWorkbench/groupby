@@ -61,6 +61,18 @@ class TestFilter(unittest.TestCase):
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
+    # #157104264: selecting non-count operation, setting a string target column, then switching to count caused error
+    def test_count_with_targetcolumn(self):
+        param_copy = defaultparams.copy()
+        param_copy['groupby|groupby|0'] = "a"
+        param_copy['targetcolumn|operation|0'] = "b" # string type
+        out_table = pd.DataFrame([
+            ['bread', 4],
+            ['roses', 3]
+        ], columns=['a', 'Group Size'])
+        out = render(self.table, param_copy)
+        self.assertTrue(out.equals(out_table))
+
     def test_two_level(self):
         param_copy = defaultparams.copy()
         param_copy['groupby|groupby|0'] = "a"

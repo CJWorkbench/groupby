@@ -52,7 +52,7 @@ def render(table, params):
                 continue
 
             # if target column is not a numeric type, tries to convert it (before any aggregation)
-            if targetcolumn != '' and operation != 'nunique' and (
+            if targetcolumn != '' and operation not in ['nunique','size'] and (
                     table[targetcolumn].dtype != np.float64 and table[targetcolumn].dtype != np.int64):
                 try:
                     table[targetcolumn] = table[targetcolumn].str.replace(',', '')
