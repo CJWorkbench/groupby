@@ -66,6 +66,7 @@
       "name": "",
       "id_name" : "targetcolumn.hide-with-sibling|operation|1",
       "type": "column",
+      "placeholder": "Select target column",
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|1",
@@ -166,6 +167,7 @@
       "name": "",
       "id_name" : "targetcolumn.hide-with-sibling|operation|3",
       "type": "column",
+      "placeholder": "Select target column",
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|3",
@@ -217,6 +219,7 @@
       "name": "",
       "id_name" : "targetcolumn.hide-with-sibling|operation|4",
       "type": "column",
+      "placeholder": "Select target column",
       "visible_if": {
         "invert": true,
         "id_name": "operation.show-sibling|operation|4",
