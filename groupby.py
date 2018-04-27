@@ -1,22 +1,19 @@
 def render(table, params):
     import numpy as np
+
+    # convert mangled parameter names like "param_name.css_class|group_name|index" (temporary hack) into
+    # the tree structure of parameters we expect that our API will provide when we have proper groups
     param_obj = {}
     for k, v in params.items():
         name_parts = k.split('|')
         name_parts[0] = name_parts[0].split('.')[0]
 
         if len(name_parts) > 1:
-            try:
-                param_obj[name_parts[1]]
-            except KeyError:
-                param_obj[name_parts[1]] = {}
-
-            try:
-                param_obj[name_parts[1]][name_parts[2]]
-            except:
-                param_obj[name_parts[1]][name_parts[2]] = {}
-
-            param_obj[name_parts[1]][name_parts[2]][name_parts[0]] = v
+            param_name = name_parts[1]
+            group_name = name_parts[2]
+            param_obj[param_name] = param_obj.get(param_name, {})
+            param_obj[param_name][group_name] = param_obj[param_name].get(group_name, {})
+            param_obj[param_name][group_name][name_parts[0]] = v
 
     for k, v in param_obj.items():
         # Turn a dict with numeric keys into an array
@@ -63,7 +60,7 @@ def render(table, params):
                 except Exception:
                     return "Can't get " + operation + " of non-numeric column '" + targetcolumn + "'"
 
-            if operation is 'size':
+            if operation == 'size':
                 target_col_name = columns[0][0]
             else:
                 target_col_name = targetcolumn

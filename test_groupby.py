@@ -239,7 +239,7 @@ class TestFilter(unittest.TestCase):
         param_copy['active.addremove.last|groupby|1'] = True
         param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation|operation|1'] = 2
+        param_copy['operation.show-sibling|operation|1'] = 2
         param_copy['active.addremove|operation|1'] = True
         out_table = pd.DataFrame([
             ['bread', 'death', float(4)],
@@ -257,8 +257,8 @@ class TestFilter(unittest.TestCase):
         param_copy['active.addremove.last|groupby|1'] = True
         param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation|operation|1'] = 4
-        param_copy['targetcolumn|operation|1'] = "c"
+        param_copy['operation.show-sibling|operation|1'] = 4
+        param_copy['targetcolumn.hide-with-sibling|operation|1'] = "c"
         param_copy['active.addremove|operation|1'] = True
         out_table = pd.DataFrame([
             ['bread', 'death', float(4), float(3)],
@@ -276,8 +276,8 @@ class TestFilter(unittest.TestCase):
         param_copy['active.addremove.last|groupby|1'] = True
         param_copy['operation|operation|0'] = 5
         param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation|operation|1'] = 4
-        param_copy['targetcolumn|operation|1'] = "e"
+        param_copy['operation.show-sibling|operation|1'] = 4
+        param_copy['targetcolumn.hide-with-sibling|operation|1'] = "e"
         param_copy['active.addremove|operation|1'] = True
         out_table = pd.DataFrame([
             ['bread', 'death', float(4), float(5)],
@@ -295,8 +295,8 @@ class TestFilter(unittest.TestCase):
         param_copy['active.addremove.last|groupby|1'] = True
         param_copy['operation|operation|0'] = 4
         param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation|operation|1'] = 4
-        param_copy['targetcolumn|operation|1'] = "e"
+        param_copy['operation.show-sibling|operation|1'] = 4
+        param_copy['targetcolumn.hide-with-sibling|operation|1'] = "e"
         param_copy['active.addremove|operation|1'] = True
         out_table = pd.DataFrame([
             ['bread', 'death', float(3), float(5)],
