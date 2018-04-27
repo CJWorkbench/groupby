@@ -110,9 +110,8 @@
       }
     },
     {
-      "name": "",
+      "name": "prout",
       "id_name" : "targetcolumn.hide-with-sibling|operation|2",
-      "placeholder":"Select target column",
       "type": "column",
       "visible_if": {
         "invert": true,
