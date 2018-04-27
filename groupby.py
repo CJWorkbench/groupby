@@ -28,6 +28,9 @@ def render(table, params):
     if len(groupby_vals) == 0:
         return table
     else:
+        # ensure unique, in case the user groups by same thing multuple times
+        if len(groupby_vals)==2 and groupby_vals[0] == groupby_vals[1]:
+            del groupby_vals[1]
         grouped_table = table.groupby(groupby_vals)
         columns = [[val, val] for val in groupby_vals]
         agg_dict = {}

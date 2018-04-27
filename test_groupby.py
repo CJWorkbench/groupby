@@ -61,7 +61,7 @@ class TestFilter(unittest.TestCase):
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
-    # #157104264: selecting non-count operation, setting a string target column, then switching to count caused error
+    #  count should ignore target column (#157104264)
     def test_count_with_targetcolumn(self):
         param_copy = defaultparams.copy()
         param_copy['groupby|groupby|0'] = "a"
@@ -84,6 +84,19 @@ class TestFilter(unittest.TestCase):
             ['roses', 'death', 1],
             ['roses', 'liberty', 2],
         ], columns=['a', 'b', 'Group Size'])
+        out = render(self.table, param_copy)
+        self.assertTrue(out.equals(out_table))
+
+    # setting groupby to same column twice should act as one level group (#156967571)
+    def test_two_level_repeated_column(self):
+        param_copy = defaultparams.copy()
+        param_copy['groupby|groupby|0'] = "a"
+        param_copy['groupby|groupby|1'] = "a"
+        param_copy['active.addremove.last|groupby|1'] = True
+        out_table = pd.DataFrame([
+            ['bread', 4],
+            ['roses', 3]
+        ], columns=['a', 'Group Size'])
         out = render(self.table, param_copy)
         self.assertTrue(out.equals(out_table))
 
