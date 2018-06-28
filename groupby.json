@@ -80,7 +80,6 @@
       "type": "string",
       "placeholder": "Output name",
       "visible": false
-      }
     },
     {
       "name": "",
@@ -127,7 +126,6 @@
       "type": "string",
       "placeholder": "Output name",
       "visible": false
-      }
     },
     {
       "name": "",
@@ -177,7 +175,6 @@
       "type": "string",
       "placeholder": "Output name",
       "visible": false
-      }
     },
     {
       "name": "",
@@ -227,7 +224,6 @@
       "type": "string",
       "placeholder": "Output name",
       "visible": false
-      }
     },
     {
       "name": "",
