@@ -47,6 +47,7 @@
     {
       "name": "",
       "id_name" : "outputname|operation|0",
+      "visible": false,
       "type": "string",
       "placeholder": "Output name"
     },
