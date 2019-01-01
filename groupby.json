@@ -209,7 +209,7 @@
       "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
       "default": "0",
       "visible_if": {
-        "id_name": "active.addremove.last|operation|4",
+        "id_name": "active.addremove|operation|4",
         "value": true
       }
     },
@@ -230,13 +230,13 @@
       "type": "string",
       "placeholder": "Output name",
       "visible_if": {
-        "id_name": "active.addremove.last|operation|4",
+        "id_name": "active.addremove|operation|4",
         "value": true
       }
     },
     {
       "name": "",
-      "id_name" : "active.addremove.last|operation|4",
+      "id_name" : "active.addremove|operation|4",
       "type": "checkbox",
       "default": false,
       "visible_if": {
