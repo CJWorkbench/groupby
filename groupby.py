@@ -1,6 +1,7 @@
 from collections import namedtuple
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union, Set
+import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
@@ -153,6 +154,17 @@ class DateGranularity(Enum):
     QUARTER = 'Q'
     YEAR = 'Y'
 
+    @property
+    def numpy_unit(self):
+        return {
+            self.SECOND: 's',
+            self.MINUTE: 'm',
+            self.HOUR: 'h',
+            self.DAY: 'D',
+            self.MONTH: 'M',
+            self.YEAR: 'Y',
+        }[self]
+
 
 class Operation(Enum):
     # Aggregate function names as in pandas. See
@@ -194,16 +206,16 @@ Group = namedtuple('Group', ['colname', 'date_granularity'])
 Aggregation = namedtuple('Aggregation', ['operation', 'colname', 'outname'])
 
 
-def parse_groups(*, colnames: str, group_dates: bool,
+def parse_groups(*, date_colnames: Set[str], colnames: str, group_dates: bool,
                  date_granularities: Dict[str, str]) -> List[Group]:
     colnames = [c for c in colnames.split(',') if c]
     groups = []
     for colname in colnames:
-        granularity = ''
-        if group_dates:
-            granularity_str = date_granularities.get(colname, '')
-            if granularity_str:
-                granularity = DateGranularity(granularity_str)
+        granularity_str = date_granularities.get(colname, '')
+        if group_dates and colname in date_colnames and granularity_str:
+            granularity = DateGranularity(granularity_str)
+        else:
+            granularity = None
         groups.append(Group(colname, granularity))
     return groups
 
@@ -225,9 +237,28 @@ def parse_aggregations(aggregations: List[Dict[str, str]]
     return [a for a in aggregations if a is not None]
 
 
+def group_to_spec(group: Group, table: pd.DataFrame) -> Union[str, pd.Series]:
+    """
+    Convert a Group to a Pandas .groupby() list item.
+    """
+    if group.date_granularity is None:
+        return group.colname
+    else:
+        series = table[group.colname]
+        if group.date_granularity == DateGranularity.QUARTER:
+            # numpy has no "quarter" so we'll need to do something funky
+            month_numbers = series.values.astype('M8[M]').astype('int')
+            rounded_month_numbers = (np.floor_divide(month_numbers, 3) * 3)
+            values = rounded_month_numbers.astype('M8[M]')
+        else:
+            freq = group.date_granularity.numpy_unit
+            values = series.values.astype('M8[' + freq + ']')
+        return pd.Series(values, name=group.colname)
+
+
 def groupby(table: pd.DataFrame, groups: List[Group],
             aggregations: List[Aggregation]) -> pd.DataFrame:
-    group_colnames = [group.colname for group in groups]
+    group_specs = [group_to_spec(group, table) for group in groups]
 
     # Build agg_sets: {colname => {op1, op2}}
     #
@@ -243,10 +274,10 @@ def groupby(table: pd.DataFrame, groups: List[Group],
         # (hopefully) the least computationally-intense.
         agg_sets = 'size'
 
-    if group_colnames:
+    if group_specs:
         # aggs: DataFrame indexed by group
         # out: just the group colnames, no values yet (we'll add them later)
-        grouped = table.groupby(group_colnames)
+        grouped = table.groupby(group_specs)
         if agg_sets:
             aggs = grouped.agg(agg_sets)
         out = aggs.index.to_frame(index=False)
@@ -270,7 +301,7 @@ def groupby(table: pd.DataFrame, groups: List[Group],
             )
 
         if aggregation.operation == Operation.SIZE:
-            if group_colnames:
+            if group_specs:
                 out[outname] = grouped.size().values
             else:
                 out[outname] = len(table)
@@ -286,32 +317,38 @@ def groupby(table: pd.DataFrame, groups: List[Group],
 
 
 def render(table, params):
-    groups = parse_groups(**params['groups'])
+    colnames = table.columns
+    date_colnames = set(colname for colname in colnames
+                        if hasattr(table[colname], 'dt'))
+    groups = parse_groups(date_colnames=date_colnames, **params['groups'])
     aggregations = parse_aggregations(params['aggregations'])
 
     if not aggregations:
         return table  # let user choose params
 
-    # Error out with a quickfix on type error
-    error_colnames = []
+    # Error out with a quickfix if aggregations need int and we're not int
+    non_numeric_colnames = []
     for aggregation in aggregations:
         if aggregation.operation.needs_numeric_column():
             colname = aggregation.colname
             series = table[colname]
-            if not is_numeric_dtype(series):
-                error_colnames.append(colname)
-    if error_colnames:
+            if (
+                not is_numeric_dtype(series)
+                and colname not in non_numeric_colnames
+            ):
+                non_numeric_colnames.append(colname)
+    if non_numeric_colnames:
         return {
             'error': (
                 'Columns %s must be Numbers'
-                % ', '.join(f'"{x}"' for x in error_colnames)
+                % ', '.join(f'"{x}"' for x in non_numeric_colnames)
             ),
             'quick_fixes': [
                 {
                     'action': 'prependModule',
                     'args': [
                         'extractnumbers',
-                        {'colnames': ','.join(error_colnames)},
+                        {'colnames': ','.join(non_numeric_colnames)},
                     ],
                 },
             ],

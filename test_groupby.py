@@ -1,8 +1,9 @@
+from datetime import datetime as dt
 import unittest
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from groupby import render, migrate_params, groupby, Group, Aggregation, \
-        Operation
+        Operation, DateGranularity
 
 
 class MigrateParamsV1Test(unittest.TestCase):
@@ -258,6 +259,126 @@ class GroupbyTest(unittest.TestCase):
             'first': ['a'],
         }))
 
+    def test_aggregate_datetime_no_granularity(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [dt(2018, 1, 4), dt(2018, 1, 5), dt(2018, 1, 4)],
+            }),
+            [Group('A', None)],
+            [Aggregation(Operation.SIZE, '', 'size')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [dt(2018, 1, 4), dt(2018, 1, 5)],
+            'size': [2, 1],
+        }))
+
+    def test_aggregate_datetime_by_second(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [
+                    dt(2018, 1, 4, 1, 2, 3, 200),
+                    dt(2018, 1, 4, 1, 2, 7, 432),
+                    dt(2018, 1, 4, 1, 2, 3, 123),
+                ],
+            }),
+            [Group('A', DateGranularity.SECOND)],
+            [Aggregation(Operation.SIZE, '', 'size')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [dt(2018, 1, 4, 1, 2, 3), dt(2018, 1, 4, 1, 2, 7)],
+            'size': [2, 1],
+        }))
+
+    def test_aggregate_datetime_by_minute(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [
+                    dt(2018, 1, 4, 1, 2, 3),
+                    dt(2018, 1, 4, 1, 8, 3),
+                    dt(2018, 1, 4, 1, 2, 8),
+                ],
+            }),
+            [Group('A', DateGranularity.MINUTE)],
+            [Aggregation(Operation.SIZE, '', 'size')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [dt(2018, 1, 4, 1, 2), dt(2018, 1, 4, 1, 8)],
+            'size': [2, 1],
+        }))
+
+    def test_aggregate_datetime_by_hour(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [
+                    dt(2018, 1, 4, 1, 2, 3),
+                    dt(2018, 1, 4, 2, 2, 3),
+                    dt(2018, 1, 4, 1, 8, 3),
+                ],
+            }),
+            [Group('A', DateGranularity.HOUR)],
+            [Aggregation(Operation.SIZE, '', 'size')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [dt(2018, 1, 4, 1), dt(2018, 1, 4, 2)],
+            'size': [2, 1],
+        }))
+
+    def test_aggregate_datetime_by_day(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [
+                    dt(2018, 1, 4, 1, 2, 3),
+                    dt(2018, 2, 4, 1, 2, 3),
+                    dt(2018, 1, 4, 1, 2, 3),
+                ],
+            }),
+            [Group('A', DateGranularity.DAY)],
+            [Aggregation(Operation.SIZE, '', 'size')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [dt(2018, 1, 4), dt(2018, 2, 4)],
+            'size': [2, 1],
+        }))
+
+    def test_aggregate_datetime_by_month(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [dt(2018, 1, 4), dt(2018, 2, 4), dt(2018, 1, 6)],
+            }),
+            [Group('A', DateGranularity.MONTH)],
+            [Aggregation(Operation.SIZE, '', 'size')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [dt(2018, 1, 1), dt(2018, 2, 1)],
+            'size': [2, 1],
+        }))
+
+    def test_aggregate_datetime_by_quarter(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [dt(2018, 1, 4), dt(2018, 6, 4), dt(2018, 3, 4)],
+            }),
+            [Group('A', DateGranularity.QUARTER)],
+            [Aggregation(Operation.SIZE, '', 'size')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [dt(2018, 1, 1), dt(2018, 4, 1)],
+            'size': [2, 1],
+        }))
+
+    def test_aggregate_datetime_by_year(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [dt(2018, 1, 4), dt(2019, 2, 4), dt(2018, 3, 4)],
+            }),
+            [Group('A', DateGranularity.YEAR)],
+            [Aggregation(Operation.SIZE, '', 'size')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [dt(2018, 1, 1), dt(2019, 1, 1)],
+            'size': [2, 1],
+        }))
+
 
 class RenderTest(unittest.TestCase):
     def test_defaults_no_op(self):
@@ -272,7 +393,7 @@ class RenderTest(unittest.TestCase):
         })
         assert_frame_equal(result, table)
 
-    def test_quickfix_convert_strings_to_numbers(self):
+    def test_quickfix_convert_value_strings_to_numbers(self):
         result = render(
             pd.DataFrame({
                 'A': [1, 1, 1],
@@ -299,6 +420,31 @@ class RenderTest(unittest.TestCase):
                 },
             ],
         })
+
+    def test_ignore_non_date_datetimes(self):
+        # Steps for the user to get here:
+        # 1. Make a date column, 'A'
+        # 2. Check "Group Dates". The column appears.
+        # 3. Select column 'A', and select a date granularity for it
+        # 4. Alter the input DataFrame such that 'A' is no longer datetime
+        #
+        # Expected results: you can't group it by date any more.
+        result = render(
+            pd.DataFrame({
+                'A': [1],  # "used to be a datetime" according to above steps
+                'B': [dt(2019, 1, 4)],  # so we don't trigger quickfix
+            }), {
+                'groups': {
+                    'colnames': 'A',
+                    'group_dates': True,
+                    'date_granularities': {'A': 'T'},
+                },
+                'aggregations': [
+                    {'operation': 'size', 'colname': '', 'outname': 'size'},
+                ],
+            }
+        )
+        assert_frame_equal(result, pd.DataFrame({'A': [1], 'size': [1]}))
 
 
 if __name__ == '__main__':
