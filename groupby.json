@@ -5,244 +5,38 @@
   "category" : "Analyze",
   "icon": "group",
   "help_url":"modules/analyse/group",
+  "param_schema": {
+    "groups": {
+      "type": "dict",
+      "properties": {
+        "colnames": { "type": "multicolumn" },
+        "group_dates": { "type": "boolean" },
+        "date_granularities": {
+          "type": "map",
+          "value_dtype": { "type": "string" }
+        }
+      }
+    },
+    "aggregations": {
+      "type": "list",
+      "inner_dtype": {
+        "type": "dict",
+        "properties": {
+          "operation": { "type": "string" },
+          "colname": { "type": "column" },
+          "outname": { "type": "string" }
+        }
+      }
+    }
+  },
   "parameters": [
     {
-      "name": "Group by",
-      "id_name" : "groupby|groupby|0",
-      "type": "column"
+      "id_name": "groups",
+      "type": "custom"
     },
     {
-      "name": "Group by",
-      "id_name" : "groupby|groupby|1",
-      "type": "column",
-      "visible_if": {
-        "id_name": "active.addremove.last|groupby|1",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "active.addremove.last|groupby|1",
-      "type": "checkbox",
-      "default": false
-    },
-    {
-      "name": "Operation",
-      "id_name" : "operation|operation|0",
-      "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
-      "default": "0"
-    },
-    {
-      "name": "",
-      "id_name" : "targetcolumn|operation|0",
-      "type": "column",
-      "placeholder": "Select target column",
-      "visible_if": {
-        "invert": true,
-        "id_name": "operation|operation|0",
-        "value": "Count"
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "outputname|operation|0",
-      "type": "string",
-      "placeholder": "Output name"
-    },
-    {
-      "name": "Operation 2",
-      "id_name" : "operation.show-sibling|operation|1",
-      "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
-      "default": "0",
-      "visible_if": {
-        "id_name": "active.addremove|operation|1",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "targetcolumn.hide-with-sibling|operation|1",
-      "type": "column",
-      "placeholder": "Select target column",
-      "visible_if": {
-        "invert": true,
-        "id_name": "operation.show-sibling|operation|1",
-        "value": "Count"
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "outputname|operation|1",
-      "type": "string",
-      "placeholder": "Output name",
-      "visible_if": {
-        "id_name": "active.addremove|operation|1",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "cheat.cheat|operation|1",
-      "type": "checkbox",
-      "default": false,
-      "visible_if": {
-        "id_name": "active.addremove|operation|2",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "active.addremove|operation|1",
-      "type": "checkbox",
-      "default": false
-    },
-    {
-      "name": "Operation 3",
-      "id_name" : "operation.show-sibling|operation|2",
-      "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
-      "default": "0",
-      "visible_if": {
-        "id_name": "active.addremove|operation|2",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "targetcolumn.hide-with-sibling|operation|2",
-      "type": "column",
-      "placeholder": "Select target column",
-      "visible_if": {
-        "invert": true,
-        "id_name": "operation.show-sibling|operation|2",
-        "value": "Count"
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "outputname|operation|2",
-      "type": "string",
-      "placeholder": "Output name",
-      "visible_if": {
-        "id_name": "active.addremove|operation|2",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "cheat.cheat|operation|2",
-      "type": "checkbox",
-      "default": false,
-      "visible_if": {
-        "id_name": "active.addremove|operation|3",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "active.addremove|operation|2",
-      "type": "checkbox",
-      "default": false,
-      "visible_if": {
-        "id_name": "active.addremove|operation|1",
-        "value": true
-      }
-    },
-    {
-      "name": "Operation 4",
-      "id_name" : "operation.show-sibling|operation|3",
-      "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
-      "default": "0",
-      "visible_if": {
-        "id_name": "active.addremove|operation|3",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "targetcolumn.hide-with-sibling|operation|3",
-      "type": "column",
-      "placeholder": "Select target column",
-      "visible_if": {
-        "invert": true,
-        "id_name": "operation.show-sibling|operation|3",
-        "value": "Count"
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "outputname|operation|3",
-      "type": "string",
-      "placeholder": "Output name",
-      "visible_if": {
-        "id_name": "active.addremove|operation|3",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "cheat.cheat|operation|3",
-      "type": "checkbox",
-      "default": false,
-      "visible_if": {
-        "id_name": "active.addremove|operation|4",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "active.addremove|operation|3",
-      "type": "checkbox",
-      "default": false,
-      "visible_if": {
-        "id_name": "active.addremove|operation|2",
-        "value": true
-      }
-    },
-    {
-      "name": "Operation 5",
-      "id_name" : "operation.show-sibling|operation|4",
-      "type" : "menu",
-      "menu_items" : "Count|Count unique|Sum|Average|Min|Max",
-      "default": "0",
-      "visible_if": {
-        "id_name": "active.addremove|operation|4",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "targetcolumn.hide-with-sibling|operation|4",
-      "type": "column",
-      "placeholder": "Select target column",
-      "visible_if": {
-        "invert": true,
-        "id_name": "operation.show-sibling|operation|4",
-        "value": "Count"
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "outputname|operation|4",
-      "type": "string",
-      "placeholder": "Output name",
-      "visible_if": {
-        "id_name": "active.addremove|operation|4",
-        "value": true
-      }
-    },
-    {
-      "name": "",
-      "id_name" : "active.addremove|operation|4",
-      "type": "checkbox",
-      "default": false,
-      "visible_if": {
-        "id_name": "active.addremove|operation|3",
-        "value": true
-      }
+      "id_name": "aggregations",
+      "type": "custom"
     }
   ]
 }

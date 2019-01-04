@@ -1,355 +1,304 @@
 import unittest
 import pandas as pd
-import numpy as np
-from groupby import render
+from pandas.testing import assert_frame_equal
+from groupby import render, migrate_params, groupby, Group, Aggregation, \
+        Operation
 
-defaultparams = {
-  "groupby|groupby|0": "",
-  "groupby|groupby|1": "",
-  "active.addremove.last|groupby|1": False,
-  "operation|operation|0": 0,
-  "targetcolumn|operation|0": "",
-  "outputname|operation|0": "",
-  "operation.show-sibling|operation|1": 0,
-  "targetcolumn.hide-with-sibling|operation|1": "",
-  "outputname|operation|1": "",
-  "cheat.cheat|operation|1": False,
-  "active.addremove|operation|1": False,
-  "operation.show-sibling|operation|2": 0,
-  "targetcolumn.hide-with-sibling|operation|2": "",
-  "outputname|operation|2": "",
-  "cheat.cheat|operation|2": False,
-  "active.addremove|operation|2": False,
-  "operation.show-sibling|operation|3": 0,
-  "targetcolumn.hide-with-sibling|operation|3": "",
-  "outputname|operation|3": "",
-  "cheat.cheat|operation|3": False,
-  "active.addremove|operation|3": False,
-  "operation.show-sibling|operation|4": 0,
-  "targetcolumn.hide-with-sibling|operation|4": "",
-  "outputname|operation|4": "",
-  "cheat.cheat|operation|4": False,
-  "active.addremove.last|operation|4": False
-}
 
-class TestFilter(unittest.TestCase):
+class MigrateParamsV1Test(unittest.TestCase):
+    defaults = {
+      'groupby|groupby|0': '',
+      'groupby|groupby|1': '',
+      'active.addremove.last|groupby|1': False,
+      'operation|operation|0': 0,
+      'targetcolumn|operation|0': '',
+      'outputname|operation|0': '',
+      'operation.show-sibling|operation|1': 0,
+      'targetcolumn.hide-with-sibling|operation|1': '',
+      'outputname|operation|1': '',
+      'cheat.cheat|operation|1': False,
+      'active.addremove|operation|1': False,
+      'operation.show-sibling|operation|2': 0,
+      'targetcolumn.hide-with-sibling|operation|2': '',
+      'outputname|operation|2': '',
+      'cheat.cheat|operation|2': False,
+      'active.addremove|operation|2': False,
+      'operation.show-sibling|operation|3': 0,
+      'targetcolumn.hide-with-sibling|operation|3': '',
+      'outputname|operation|3': '',
+      'cheat.cheat|operation|3': False,
+      'active.addremove|operation|3': False,
+      'operation.show-sibling|operation|4': 0,
+      'targetcolumn.hide-with-sibling|operation|4': '',
+      'outputname|operation|4': '',
+      'cheat.cheat|operation|4': False,
+      'active.addremove.last|operation|4': False
+    }
 
-    def setUp(self):
-        # Test data includes some partially and completely empty rows because this tends to freak out Pandas
-        self.table = pd.DataFrame([
-            ['bread', 'liberty', 3, 'round', '2018-1-12', 2],
-            ['bread', 'liberty', None, 'square', '2018-1-12 08:15', 1],
-            ['bread', 'death', 3, 'round', '2018-1-12', 5],
-            ['bread', 'death', 4, 'square', '2018-1-12 08:15', 8],
-            [None, None, None, None, None, None],
-            ['roses', 'liberty', 10, 'Round', '2015-7-31', 7],
-            ['roses', 'liberty', 11, 'square', '2018-3-12', 4],
-            ['roses', 'death', None, 'square', '2018-3-12', 9]
-        ], columns=['a', 'b', 'c', 'd', 'date', 'e'])
+    def test_migrate_default(self):
+        self.assertEqual(migrate_params(self.defaults), {
+            'groups': {
+                'colnames': '',
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [
+                {
+                    'operation': 'size',
+                    'colname': '',
+                    'outname': '',
+                },
+            ],
+        })
 
-    def test_no_params(self):
-        out = render(self.table, defaultparams)
-        self.assertTrue(out.equals(self.table))  # should NOP when first applied
+    def test_migrate_two_colnames(self):
+        self.assertEqual(migrate_params({
+            **self.defaults,
+            'groupby|groupby|0': 'a',
+            'groupby|groupby|1': 'b',
+            'active.addremove.last|groupby|1': True,
+        })['groups']['colnames'], 'a,b')
 
-    def test_one_level(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        out_table = pd.DataFrame([
-            ['bread', 4],
-            ['roses', 3]
-        ], columns=['a', 'Group Size'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_migrate_two_colnames_but_second_not_active(self):
+        self.assertEqual(migrate_params({
+            **self.defaults,
+            'groupby|groupby|0': 'a',
+            'groupby|groupby|1': 'b',
+            'active.addremove.last|groupby|1': False,
+        })['groups']['colnames'], 'a')
 
-    #  count should ignore target column (#157104264)
-    def test_count_with_targetcolumn(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['targetcolumn|operation|0'] = "b" # string type
-        out_table = pd.DataFrame([
-            ['bread', 4],
-            ['roses', 3]
-        ], columns=['a', 'Group Size'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_migrate_aggregation(self):
+        self.assertEqual(migrate_params({
+            **self.defaults,
+            'operation|operation|0': 5,
+            'targetcolumn|operation|0': 'c',
+            'outputname|operation|0': 'C',
+        })['aggregations'], [
+            {'operation': 'max', 'colname': 'c', 'outname': 'C'},
+        ])
 
-    def test_two_level(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        out_table = pd.DataFrame([
-            ['bread', 'death', 2],
-            ['bread', 'liberty', 2],
-            ['roses', 'death', 1],
-            ['roses', 'liberty', 2],
-        ], columns=['a', 'b', 'Group Size'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_migrate_only_active_aggregations(self):
+        self.assertEqual(migrate_params({
+            **self.defaults,
+            'operation|operation|0': 5,
+            'targetcolumn|operation|0': 'c',
+            'outputname|operation|0': 'C',
+            'active.addremove|operation|1': False,
+            # The next operation isn't active, so it will be ignored
+            'operation.show-sibling|operation|1': 2,
+            'targetcolumn.hide-with-sibling|operation|1': 'd',
+            'outputname|operation|1': 'D',
+        })['aggregations'], [
+            {'operation': 'max', 'colname': 'c', 'outname': 'C'},
+        ])
 
-    # setting groupby to same column twice should act as one level group (#156967571)
-    def test_two_level_repeated_column(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "a"
-        param_copy['active.addremove.last|groupby|1'] = True
-        out_table = pd.DataFrame([
-            ['bread', 4],
-            ['roses', 3]
-        ], columns=['a', 'Group Size'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_migrate_many_aggregations(self):
+        self.assertEqual(migrate_params({
+            **self.defaults,
+            # COUNT(*) AS A
+            'operation|operation|0': 0,
+            'targetcolumn|operation|0': '',
+            'outputname|operation|0': 'A',
+            # COUNT DISTINCT(*) AS B
+            'active.addremove|operation|1': True,
+            'operation.show-sibling|operation|1': 1,
+            'targetcolumn.hide-with-sibling|operation|1': '',
+            'outputname|operation|1': 'B',
+            # SUM(c) AS C
+            'active.addremove|operation|2': True,
+            'operation.show-sibling|operation|2': 2,
+            'targetcolumn.hide-with-sibling|operation|2': 'c',
+            'outputname|operation|2': 'C',
+            # MEAN(d) AS D
+            'active.addremove|operation|3': True,
+            'operation.show-sibling|operation|3': 3,
+            'targetcolumn.hide-with-sibling|operation|3': 'd',
+            'outputname|operation|3': 'D',
+            # MAX(e) AS E
+            'active.addremove|operation|4': True,
+            'operation.show-sibling|operation|4': 4,
+            'targetcolumn.hide-with-sibling|operation|4': 'e',
+            'outputname|operation|4': 'E',
+        })['aggregations'], [
+            {'operation': 'size', 'colname': '', 'outname': 'A'},
+            {'operation': 'nunique', 'colname': '', 'outname': 'B'},
+            {'operation': 'sum', 'colname': 'c', 'outname': 'C'},
+            {'operation': 'mean', 'colname': 'd', 'outname': 'D'},
+            {'operation': 'min', 'colname': 'e', 'outname': 'E'},
+        ])
 
-    def test_one_level_avg(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 3
-        param_copy['targetcolumn|operation|0'] = "c"
-        out_table = pd.DataFrame([
-            ['bread', float(sum([3, 3, 4])/3)],
-            ['roses', float(sum([10, 11])/2)]
-        ], columns=['a', 'Average of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_migrate_omit_aggregation_missing_colname(self):
+        self.assertEqual(migrate_params({
+            **self.defaults,
+            # SUM(*) AS A (which isn't valid)
+            'operation|operation|0': 2,
+            'targetcolumn|operation|0': '',
+            'outputname|operation|0': 'A',
+            # COUNT DISTINCT(*) AS B
+            'active.addremove|operation|1': True,
+            'operation.show-sibling|operation|1': 1,
+            'targetcolumn.hide-with-sibling|operation|1': '',
+            'outputname|operation|1': 'B',
+        })['aggregations'], [
+            {'operation': 'nunique', 'colname': '', 'outname': 'B'},
+        ])
 
-    def test_two_level_avg(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 3
-        param_copy['targetcolumn|operation|0'] = "c"
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(sum([3, 4])/2)],
-            ['bread', 'liberty', float(3)],
-            ['roses', 'death', float('nan')],
-            ['roses', 'liberty', float(sum([10, 11]) / 2)],
-        ], columns=['a', 'b', 'Average of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
 
-    def test_one_level_sum(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 2
-        param_copy['targetcolumn|operation|0'] = "c"
-        out_table = pd.DataFrame([
-            ['bread', float(10)],
-            ['roses', float(21)]
-        ], columns=['a', 'Sum of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+class GroupbyTest(unittest.TestCase):
+    def test_no_colnames(self):
+        table = pd.DataFrame({'A': [1, 2]})
+        result = groupby(table, [], [Aggregation(Operation.SUM, 'A', 'X')])
+        assert_frame_equal(result, pd.DataFrame({'X': [3]}))
 
-    def test_two_level_sum(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 2
-        param_copy['targetcolumn|operation|0'] = "c"
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(7)],
-            ['bread', 'liberty', float(3)],
-            ['roses', 'death', float('nan')],
-            ['roses', 'liberty', float(21)],
-        ], columns=['a', 'b', 'Sum of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_size(self):
+        table = pd.DataFrame({'A': [1, 1, 2]})
+        result = groupby(table, [Group('A', None)],
+                         [Aggregation(Operation.SIZE, '', 'X')])
+        assert_frame_equal(result, pd.DataFrame({'A': [1, 2], 'X': [2, 1]}))
 
-    def test_one_level_min(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 4
-        param_copy['targetcolumn|operation|0'] = "c"
-        out_table = pd.DataFrame([
-            ['bread', float(3)],
-            ['roses', float(10)]
-        ], columns=['a', 'Min of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_multilevel(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [1, 1, 1, 2],
+                'B': [1, 1, 2, 2],
+                'C': [0, 1, -1, 0],
+            }),
+            [Group('A', None), Group('B', None)],
+            [Aggregation(Operation.SUM, 'C', 'D')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [1, 1, 2],
+            'B': [1, 2, 2],
+            'D': [1, -1, 0],
+        }))
 
-    def test_two_level_min(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 4
-        param_copy['targetcolumn|operation|0'] = "c"
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(3)],
-            ['bread', 'liberty', float(3)],
-            ['roses', 'death', float('nan')],
-            ['roses', 'liberty', float(10)],
-        ], columns=['a', 'b', 'Min of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_allow_duplicate_aggregations(self):
+        result = groupby(
+            pd.DataFrame({'A': [1, 1, 2], 'B': [1, 2, 3]}),
+            [Group('A', None)],
+            [
+                Aggregation(Operation.MIN, 'B', 'X'),
+                Aggregation(Operation.MIN, 'B', 'Y'),
+            ]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [1, 2],
+            'X': [1, 3],
+            'Y': [1, 3],
+        }))
 
-    def test_one_level_max(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 5
-        param_copy['targetcolumn|operation|0'] = "c"
-        out_table = pd.DataFrame([
-            ['bread', float(4)],
-            ['roses', float(11)]
-        ], columns=['a', 'Max of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_aggregate_grouped_column(self):
+        # Does the user know what he or she is doing? Dunno. But
+        # [adamhooper, 2019-01-03] SQL would aggregate the single
+        # value, so why shouldn't Workbench?
+        result = groupby(
+            pd.DataFrame({
+                'A': [1, 1, 2],
+                'B': [1, 2, 2],
+                'C': [5, 5, 5],
+            }),
+            [Group('A', None), Group('B', None)],
+            [Aggregation(Operation.SUM, 'B', 'X')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [1, 1, 2],
+            'B': [1, 2, 2],
+            'X': [1, 2, 2],  # just a copy of B
+        }))
 
-    def test_two_level_max(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 5
-        param_copy['targetcolumn|operation|0'] = "c"
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(4)],
-            ['bread', 'liberty', float(3)],
-            ['roses', 'death', float('nan')],
-            ['roses', 'liberty', float(11)],
-        ], columns=['a', 'b', 'Max of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_aggregate_numbers(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [2, 1, 2, 2],
+                'B': [1, 2, 5, 1],
+            }),
+            [Group('A', None)],
+            [
+                Aggregation(Operation.SIZE, '', 'size'),
+                Aggregation(Operation.NUNIQUE, 'B', 'nunique'),
+                Aggregation(Operation.SUM, 'B', 'sum'),
+                Aggregation(Operation.MEAN, 'B', 'mean'),
+                Aggregation(Operation.MIN, 'B', 'min'),
+                Aggregation(Operation.MAX, 'B', 'max'),
+                Aggregation(Operation.FIRST, 'B', 'first'),
+            ]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [1, 2],
+            'size': [1, 3],
+            'nunique': [1, 2],
+            'sum': [2, 7],
+            'mean': [2, 7 / 3],
+            'min': [2, 1],
+            'max': [2, 5],
+            'first': [2, 1],
+        }))
 
-    def test_one_level_count_unique(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 1
-        param_copy['targetcolumn|operation|0'] = "d"
-        out_table = pd.DataFrame([
-            ['bread', 2],
-            ['roses', 2]
-        ], columns=['a', 'Count unique of d'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+    def test_aggregate_strings(self):
+        result = groupby(
+            pd.DataFrame({
+                'A': [1, 1, 1],
+                'B': ['a', 'b', 'a'],
+            }),
+            [Group('A', None)],
+            [
+                Aggregation(Operation.SIZE, 'B', 'size'),
+                Aggregation(Operation.NUNIQUE, 'B', 'nunique'),
+                Aggregation(Operation.MIN, 'B', 'min'),
+                Aggregation(Operation.MAX, 'B', 'max'),
+                Aggregation(Operation.FIRST, 'B', 'first'),
+            ]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [1],
+            'size': [3],
+            'nunique': [2],
+            'min': ['a'],
+            'max': ['b'],
+            'first': ['a'],
+        }))
 
-    def test_two_level_count_unique(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 1
-        param_copy['targetcolumn|operation|0'] = "d"
-        out_table = pd.DataFrame([
-            ['bread', 'death', 2],
-            ['bread', 'liberty', 2],
-            ['roses', 'death', 1],
-            ['roses', 'liberty', 2],
-        ], columns=['a', 'b', 'Count unique of d'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
 
-    def test_two_level_multi_op(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 5
-        param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['active.addremove|operation|1'] = True
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(4), 2],
-            ['bread', 'liberty', float(3), 2],
-            ['roses', 'death', float('nan'), 1],
-            ['roses', 'liberty', float(11), 2],
-        ], columns=['a', 'b', 'Max of c', 'Group Size'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
+class RenderTest(unittest.TestCase):
+    def test_defaults_no_op(self):
+        table = pd.DataFrame({'A': [1, 2]})
+        result = render(table, {
+            'groups': {
+                'colnames': '',
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [],
+        })
+        assert_frame_equal(result, table)
 
-    def test_two_level_multi_op_no_target(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 5
-        param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation.show-sibling|operation|1'] = 2
-        param_copy['active.addremove|operation|1'] = True
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(4)],
-            ['bread', 'liberty', float(3)],
-            ['roses', 'death', float('nan')],
-            ['roses', 'liberty', float(11)],
-        ], columns=['a', 'b', 'Max of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
-
-    def test_two_level_multi_op_same_target(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 5
-        param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation.show-sibling|operation|1'] = 4
-        param_copy['targetcolumn.hide-with-sibling|operation|1'] = "c"
-        param_copy['active.addremove|operation|1'] = True
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(4), float(3)],
-            ['bread', 'liberty', float(3), float(3)],
-            ['roses', 'death', float('nan'), float('nan')],
-            ['roses', 'liberty', float(11), float(10)],
-        ], columns=['a', 'b', 'Max of c', 'Min of c'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
-
-    def test_two_level_multi_op_multi_target(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 5
-        param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation.show-sibling|operation|1'] = 4
-        param_copy['targetcolumn.hide-with-sibling|operation|1'] = "e"
-        param_copy['active.addremove|operation|1'] = True
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(4), float(5)],
-            ['bread', 'liberty', float(3), float(1)],
-            ['roses', 'death', float('nan'), float(9)],
-            ['roses', 'liberty', float(11), float(4)],
-        ], columns=['a', 'b', 'Max of c', 'Min of e'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
-
-    def test_two_level_same_op_multi_target(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['groupby|groupby|1'] = "b"
-        param_copy['active.addremove.last|groupby|1'] = True
-        param_copy['operation|operation|0'] = 4
-        param_copy['targetcolumn|operation|0'] = "c"
-        param_copy['operation.show-sibling|operation|1'] = 4
-        param_copy['targetcolumn.hide-with-sibling|operation|1'] = "e"
-        param_copy['active.addremove|operation|1'] = True
-        out_table = pd.DataFrame([
-            ['bread', 'death', float(3), float(5)],
-            ['bread', 'liberty', float(3), float(1)],
-            ['roses', 'death', float('nan'), float(9)],
-            ['roses', 'liberty', float(10), float(4)],
-        ], columns=['a', 'b', 'Min of c', 'Min of e'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
-
-    def test_custom_name(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['outputname|operation|0'] = "Test"
-        out_table = pd.DataFrame([
-            ['bread', 4],
-            ['roses', 3]
-        ], columns=['a', 'Test'])
-        out = render(self.table, param_copy)
-        self.assertTrue(out.equals(out_table))
-
-    def test_non_numeric_column_error(self):
-        param_copy = defaultparams.copy()
-        param_copy['groupby|groupby|0'] = "a"
-        param_copy['operation|operation|0'] = 4
-        param_copy['targetcolumn|operation|0'] = "date"
-        out = render(self.table, param_copy)
-        self.assertTrue(out == "Can't get min of non-numeric column 'date'")
+    def test_quickfix_convert_strings_to_numbers(self):
+        result = render(
+            pd.DataFrame({
+                'A': [1, 1, 1],
+                'B': ['a', 'b', 'a'],
+                'C': ['a', 'b', 'a'],
+            }), {
+                'groups': {
+                    'colnames': 'A',
+                    'group_dates': False,
+                    'date_granularities': {},
+                },
+                'aggregations': [
+                    {'operation': 'mean', 'colname': 'B', 'outname': 'mean'},
+                    {'operation': 'sum', 'colname': 'C', 'outname': 'sum'},
+                ],
+            }
+        )
+        self.assertEqual(result, {
+            'error': 'Columns "B", "C" must be Numbers',
+            'quick_fixes': [
+                {
+                    'action': 'prependModule',
+                    'args': ['extractnumbers', {'colnames': 'B,C'}],
+                },
+            ],
+        })
 
 
 if __name__ == '__main__':
