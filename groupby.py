@@ -323,8 +323,25 @@ def render(table, params):
     groups = parse_groups(date_colnames=date_colnames, **params['groups'])
     aggregations = parse_aggregations(params['aggregations'])
 
+    # HACK: the default the user sees is "Count" because our onboarding path
+    # is for the user to 1. Select a Group By column and 2. view the count.
+    #
+    # _However_, this is a "Group By" module so we need to support the obvious
+    # operation, 'SELECT COUNT(*) FROM input'. The obvious way to display that
+    # is to select "Count" and not select a Group By column.
+    #
+    # ... and unfortunately, that form setup -- no columns selected, one
+    # "Count" aggregation selected -- is exactly what the user sees by default
+    # after adding the module, before step 1 of the onboarding path.
+    #
+    # So we get a tough choice: either make "no aggregations" a no-op to give
+    # us the ideal onboarding path, _OR_ make "no aggregations" default to
+    # "count", to support the obvious operation. Pick one: complete+simple, or
+    # onboarding-friendly. Workbench can't give both, the way its forms are
+    # designed right now.
     if not aggregations:
-        return table  # let user choose params
+        # We've chosen "complete+simple" over "onboarding-friendly"
+        aggregations.append(Aggregation(Operation.SIZE, '', ''))
 
     # Error out with a quickfix if aggregations need int and we're not int
     non_numeric_colnames = []

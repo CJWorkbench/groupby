@@ -381,7 +381,10 @@ class GroupbyTest(unittest.TestCase):
 
 
 class RenderTest(unittest.TestCase):
-    def test_defaults_no_op(self):
+    def test_defaults_count(self):
+        """
+        Not what we _really_ want, but it's what our default JS form looks like
+        """
         table = pd.DataFrame({'A': [1, 2]})
         result = render(table, {
             'groups': {
@@ -391,7 +394,7 @@ class RenderTest(unittest.TestCase):
             },
             'aggregations': [],
         })
-        assert_frame_equal(result, table)
+        assert_frame_equal(result, pd.DataFrame({'Group Size': [2]}))
 
     def test_quickfix_convert_value_strings_to_numbers(self):
         result = render(
