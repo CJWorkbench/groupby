@@ -415,6 +415,7 @@ class RenderTest(unittest.TestCase):
             'error': 'Columns "B", "C" must be Numbers',
             'quick_fixes': [
                 {
+                    'text': 'Convert',
                     'action': 'prependModule',
                     'args': ['extractnumbers', {'colnames': 'B,C'}],
                 },

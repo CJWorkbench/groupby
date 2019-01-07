@@ -338,13 +338,21 @@ def render(table, params):
             ):
                 non_numeric_colnames.append(colname)
     if non_numeric_colnames:
+        if len(non_numeric_colnames) == 1:
+            pluralized_column = 'Column'
+        else:
+            pluralized_column = 'Columns'
+
         return {
             'error': (
-                'Columns %s must be Numbers'
-                % ', '.join(f'"{x}"' for x in non_numeric_colnames)
+                '%s %s must be Numbers' % (
+                    pluralized_column,
+                    ', '.join(f'"{x}"' for x in non_numeric_colnames)
+                )
             ),
             'quick_fixes': [
                 {
+                    'text': 'Convert',
                     'action': 'prependModule',
                     'args': [
                         'extractnumbers',
