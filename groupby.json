@@ -1,7 +1,7 @@
 {
   "name": "Group",
   "id_name": "groupby",
-  "description": "Group rows by multiple columns. Set the granularity of dates, count rows and aggregate values within each group. Caclulate sum, averages, Min, Max and more between columns.",
+  "description": "Group rows by columns (also called pivot table). Count rows and aggregate values within each group, and caclulate sum, averages, Min, Max and more between columns.",
   "category" : "Analyze",
   "icon": "group",
   "help_url":"modules/analyse/group",
