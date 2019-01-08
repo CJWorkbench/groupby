@@ -1,7 +1,7 @@
 {
   "name": "Group",
   "id_name": "groupby",
-  "description": "Group rows by multiple columns. Set the garnulirity of dates, count rows, aggregate values within groups. Caclulate sum, averages, and other typical operations between column, for each group.",
+  "description": "Group rows by multiple columns. Set the granularity of dates, count rows and aggregate values within each group. Caclulate sum, averages, Min, Max and more between columns.",
   "category" : "Analyze",
   "icon": "group",
   "help_url":"modules/analyse/group",
