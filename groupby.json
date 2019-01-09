@@ -1,7 +1,7 @@
 {
   "name": "Group",
   "id_name": "groupby",
-  "description": "Group rows in a specific column and apply operation to a secondary one.",
+  "description": "Group rows by values within columns (also called pivot table). Caclulate sum, averages, Min, Max and more between columns, for each group.",
   "category" : "Analyze",
   "icon": "group",
   "help_url":"modules/analyse/group",
