@@ -420,7 +420,7 @@ class RenderTest(unittest.TestCase):
                 {
                     'text': 'Convert',
                     'action': 'prependModule',
-                    'args': ['extractnumbers', {'colnames': 'B,C'}],
+                    'args': ['extract-numbers', {'colnames': 'B,C'}],
                 },
             ],
         })

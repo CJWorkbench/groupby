@@ -372,7 +372,7 @@ def render(table, params):
                     'text': 'Convert',
                     'action': 'prependModule',
                     'args': [
-                        'extractnumbers',
+                        'extract-numbers',
                         {'colnames': ','.join(non_numeric_colnames)},
                     ],
                 },
