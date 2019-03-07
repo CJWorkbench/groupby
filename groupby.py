@@ -345,7 +345,10 @@ def render(table, params):
     # should change to be complete+simple (because the onboarding will have
     # another answer). That's
     # https://www.pivotaltracker.com/story/show/164375318
-    if aggregations == [Aggregation(Operation.SIZE, '', '')]:
+    if (
+        not groups
+        and aggregations == [Aggregation(Operation.SIZE, '', '')]
+    ):
         return table  # no-op, for users who haven't entered any params
 
     # Error out with a quickfix if aggregations need int and we're not int

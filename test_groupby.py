@@ -407,6 +407,22 @@ class RenderTest(unittest.TestCase):
         })
         assert_frame_equal(result, pd.DataFrame({'A': [1, 2]}))
 
+    def test_count_with_colnames(self):
+        # Check for obvious bug when adding
+        # https://www.pivotaltracker.com/story/show/164375369
+        table = pd.DataFrame({'A': [1, 2]})
+        result = render(table, {
+            'groups': {
+                'colnames': 'A',
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [],
+        })
+        assert_frame_equal(result, pd.DataFrame({
+            'A': [1, 2],
+            'Group Size': [1, 1],
+        }))
 
     def test_quickfix_convert_value_strings_to_numbers(self):
         result = render(
