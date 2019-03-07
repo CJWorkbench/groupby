@@ -381,10 +381,21 @@ class GroupbyTest(unittest.TestCase):
 
 
 class RenderTest(unittest.TestCase):
-    def test_defaults_count(self):
-        """
-        Not what we _really_ want, but it's what our default JS form looks like
-        """
+    #def test_defaults_count(self):
+    #    table = pd.DataFrame({'A': [1, 2]})
+    #    result = render(table, {
+    #        'groups': {
+    #            'colnames': '',
+    #            'group_dates': False,
+    #            'date_granularities': {},
+    #        },
+    #        'aggregations': [],
+    #    })
+    #    assert_frame_equal(result, pd.DataFrame({'Group Size': [2]}))
+
+    def test_count_no_colnames_is_no_op_TEMPORARY(self):
+        # Added for https://www.pivotaltracker.com/story/show/164375369
+		# Change behavior for https://www.pivotaltracker.com/story/show/164375318
         table = pd.DataFrame({'A': [1, 2]})
         result = render(table, {
             'groups': {
@@ -394,7 +405,8 @@ class RenderTest(unittest.TestCase):
             },
             'aggregations': [],
         })
-        assert_frame_equal(result, pd.DataFrame({'Group Size': [2]}))
+        assert_frame_equal(result, pd.DataFrame({'A': [1, 2]}))
+
 
     def test_quickfix_convert_value_strings_to_numbers(self):
         result = render(
