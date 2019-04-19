@@ -266,51 +266,47 @@ def groupby(table: pd.DataFrame, groups: List[Group],
     agg_sets = {}
     for aggregation in aggregations:
         if aggregation.operation != Operation.SIZE:
-            # SIZE is different because it has no colname
             op = aggregation.operation.value
             colname = aggregation.colname
             agg_sets.setdefault(colname, set()).add(op)
     if not agg_sets:
-        # We need to pass _something_ to agg(). Pass 'min', which is
-        # (hopefully) the least computationally-intense. ('size' is invalid
-        # until fix lands for
-        # https://github.com/pandas-dev/pandas/issues/23050.)
-        agg_sets = 'min'
+        # We need to pass _something_ to agg(). Pass 'size', which is
+        # (hopefully) the least computationally-intense.
+        agg_sets = 'size'
 
     if group_specs:
         # aggs: DataFrame indexed by group
         # out: just the group colnames, no values yet (we'll add them later)
         grouped = table.groupby(group_specs)
-        aggs = grouped.agg(agg_sets)
+        if agg_sets:
+            aggs = grouped.agg(agg_sets)
         out = aggs.index.to_frame(index=False)
     else:
         # aggs: DataFrame with just one row
         # out: one empty row, no columns yet
         grouped = table
-        aggs = table.agg(agg_sets)
+        if agg_sets:
+            aggs = table.agg(agg_sets)
         out = pd.DataFrame(columns=[], index=[0])
 
     # Now copy values from `aggs` into `out`. (They have the same index.)
     for aggregation in aggregations:
-        operation = aggregation.operation
-        colname = aggregation.colname
+        op = aggregation.operation.value
         outname = aggregation.outname
+        colname = aggregation.colname
+
         if not outname:
             outname = aggregation.operation.default_outname(
                 aggregation.colname
             )
 
-        if operation == Operation.SIZE:
+        if aggregation.operation == Operation.SIZE:
             if group_specs:
-                # workaround https://github.com/pandas-dev/pandas/issues/23050
-                if grouped.ngroups:
-                    out[outname] = grouped.agg('size').values
-                else:
-                    out[outname] = pd.Series([], dtype=np.int64)
+                out[outname] = grouped.size().values
             else:
                 out[outname] = len(table)
         else:
-            series = aggs[colname][operation.value]
+            series = aggs[colname][op]
             # Depending on op, pandas may return a series-like or an array.
             try:
                 out[outname] = series.values

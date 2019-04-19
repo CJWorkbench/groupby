@@ -1,6 +1,5 @@
 from datetime import datetime as dt
 import unittest
-import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from groupby import render, migrate_params, groupby, Group, Aggregation, \
@@ -423,28 +422,6 @@ class RenderTest(unittest.TestCase):
         assert_frame_equal(result, pd.DataFrame({
             'A': [1, 2],
             'Group Size': [1, 1],
-        }))
-
-    def test_count_all_null_groups(self):
-        # https://github.com/pandas-dev/pandas/issues/23050
-        table = pd.DataFrame({'A': [None, None]}, dtype=object)
-        result = render(table, {
-            'groups': {
-                'colnames': 'A',
-                'group_dates': False,
-                'date_granularities': {},
-            },
-            'aggregations': [
-                {
-                    'operation': 'size',
-                    'colname': '',
-                    'outname': '',
-                },
-            ],
-        })
-        assert_frame_equal(result, pd.DataFrame({
-            'A': pd.Series([], dtype=object),
-            'Group Size': pd.Series([], dtype=np.int64),
         }))
 
     def test_quickfix_convert_value_strings_to_numbers(self):
