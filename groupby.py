@@ -28,37 +28,42 @@ def migrate_params(params):
     # }
     if not ('groups' in params and 'aggregations' in params):
         params = _migrate_params_v1_to_v2(params)
+    if isinstance(params['groups']['colnames'], str):
+        params = _migrate_params_v2_to_v3(params)
 
     return params
 
 
 def _migrate_params_v1_to_v2(params):
-    # v1 looked like:
-    # active.addremove.last|groupby|1
-    # active.addremove|operation|1
-    # active.addremove|operation|2
-    # active.addremove|operation|3
-    # active.addremove|operation|4
-    # cheat.cheat|operation|1
-    # cheat.cheat|operation|2
-    # cheat.cheat|operation|3
-    # groupby|groupby|0
-    # groupby|groupby|1
-    # operation|operation|0
-    # operation.show-sibling|operation|1
-    # operation.show-sibling|operation|2
-    # operation.show-sibling|operation|3
-    # operation.show-sibling|operation|4
-    # outputname|operation|0
-    # outputname|operation|1
-    # outputname|operation|2
-    # outputname|operation|3
-    # outputname|operation|4
-    # targetcolumn.hide-with-sibling|operation|1
-    # targetcolumn.hide-with-sibling|operation|2
-    # targetcolumn.hide-with-sibling|operation|3
-    # targetcolumn.hide-with-sibling|operation|4
-    # targetcolumn|operation|0
+    """
+    v1 looked like:
+
+        active.addremove.last|groupby|1
+        active.addremove|operation|1
+        active.addremove|operation|2
+        active.addremove|operation|3
+        active.addremove|operation|4
+        cheat.cheat|operation|1
+        cheat.cheat|operation|2
+        cheat.cheat|operation|3
+        groupby|groupby|0
+        groupby|groupby|1
+        operation|operation|0
+        operation.show-sibling|operation|1
+        operation.show-sibling|operation|2
+        operation.show-sibling|operation|3
+        operation.show-sibling|operation|4
+        outputname|operation|0
+        outputname|operation|1
+        outputname|operation|2
+        outputname|operation|3
+        outputname|operation|4
+        targetcolumn.hide-with-sibling|operation|1
+        targetcolumn.hide-with-sibling|operation|2
+        targetcolumn.hide-with-sibling|operation|3
+        targetcolumn.hide-with-sibling|operation|4
+        targetcolumn|operation|0
+    """
     groupby = [
         params.get('groupby|groupby|0', ''),
         (
@@ -143,6 +148,22 @@ def _migrate_params_v1_to_v2(params):
     }
 
 
+def _migrate_params_v2_to_v3(params):
+    """
+    v2: params['groups']['colnames'] is comma-separated str. v3: List[str].
+    """
+    return {
+        'groups': {
+            'colnames': [c
+                         for c in params['groups']['colnames'].split(',')
+                         if c],
+            'group_dates': params['groups']['group_dates'],
+            'date_granularities': params['groups']['date_granularities'],
+        },
+        'aggregations': params['aggregations'],
+    }
+
+
 class DateGranularity(Enum):
     # Frequencies are as in pandas. See
     # http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases
@@ -206,9 +227,9 @@ Group = namedtuple('Group', ['colname', 'date_granularity'])
 Aggregation = namedtuple('Aggregation', ['operation', 'colname', 'outname'])
 
 
-def parse_groups(*, date_colnames: Set[str], colnames: str, group_dates: bool,
+def parse_groups(*, date_colnames: Set[str], colnames: List[str],
+                 group_dates: bool,
                  date_granularities: Dict[str, str]) -> List[Group]:
-    colnames = [c for c in colnames.split(',') if c]
     groups = []
     for colname in colnames:
         granularity_str = date_granularities.get(colname, '')
@@ -380,8 +401,8 @@ def render(table, params):
                     'text': 'Convert',
                     'action': 'prependModule',
                     'args': [
-                        'extract-numbers',
-                        {'colnames': ','.join(non_numeric_colnames)},
+                        'converttexttonumber',
+                        {'colnames': non_numeric_colnames},
                     ],
                 },
             ],

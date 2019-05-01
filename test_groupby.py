@@ -6,8 +6,8 @@ from groupby import render, migrate_params, groupby, Group, Aggregation, \
         Operation, DateGranularity
 
 
-class MigrateParamsV1Test(unittest.TestCase):
-    defaults = {
+class MigrateParamsTest(unittest.TestCase):
+    v1_defaults = {
       'groupby|groupby|0': '',
       'groupby|groupby|1': '',
       'active.addremove.last|groupby|1': False,
@@ -36,10 +36,10 @@ class MigrateParamsV1Test(unittest.TestCase):
       'active.addremove.last|operation|4': False
     }
 
-    def test_migrate_default(self):
-        self.assertEqual(migrate_params(self.defaults), {
+    def test_migrate_v1_default(self):
+        self.assertEqual(migrate_params(self.v1_defaults), {
             'groups': {
-                'colnames': '',
+                'colnames': [],
                 'group_dates': False,
                 'date_granularities': {},
             },
@@ -52,25 +52,25 @@ class MigrateParamsV1Test(unittest.TestCase):
             ],
         })
 
-    def test_migrate_two_colnames(self):
+    def test_migrate_v1_two_colnames(self):
         self.assertEqual(migrate_params({
-            **self.defaults,
+            **self.v1_defaults,
             'groupby|groupby|0': 'a',
             'groupby|groupby|1': 'b',
             'active.addremove.last|groupby|1': True,
-        })['groups']['colnames'], 'a,b')
+        })['groups']['colnames'], ['a', 'b'])
 
-    def test_migrate_two_colnames_but_second_not_active(self):
+    def test_migrate_v1_two_colnames_but_second_not_active(self):
         self.assertEqual(migrate_params({
-            **self.defaults,
+            **self.v1_defaults,
             'groupby|groupby|0': 'a',
             'groupby|groupby|1': 'b',
             'active.addremove.last|groupby|1': False,
-        })['groups']['colnames'], 'a')
+        })['groups']['colnames'], ['a'])
 
-    def test_migrate_aggregation(self):
+    def test_migrate_v1_aggregation(self):
         self.assertEqual(migrate_params({
-            **self.defaults,
+            **self.v1_defaults,
             'operation|operation|0': 5,
             'targetcolumn|operation|0': 'c',
             'outputname|operation|0': 'C',
@@ -78,9 +78,9 @@ class MigrateParamsV1Test(unittest.TestCase):
             {'operation': 'max', 'colname': 'c', 'outname': 'C'},
         ])
 
-    def test_migrate_only_active_aggregations(self):
+    def test_migrate_v1_only_active_aggregations(self):
         self.assertEqual(migrate_params({
-            **self.defaults,
+            **self.v1_defaults,
             'operation|operation|0': 5,
             'targetcolumn|operation|0': 'c',
             'outputname|operation|0': 'C',
@@ -93,9 +93,9 @@ class MigrateParamsV1Test(unittest.TestCase):
             {'operation': 'max', 'colname': 'c', 'outname': 'C'},
         ])
 
-    def test_migrate_many_aggregations(self):
+    def test_migrate_v1_many_aggregations(self):
         self.assertEqual(migrate_params({
-            **self.defaults,
+            **self.v1_defaults,
             # COUNT(*) AS A
             'operation|operation|0': 0,
             'targetcolumn|operation|0': '',
@@ -128,9 +128,9 @@ class MigrateParamsV1Test(unittest.TestCase):
             {'operation': 'min', 'colname': 'e', 'outname': 'E'},
         ])
 
-    def test_migrate_omit_aggregation_missing_colname(self):
+    def test_migrate_v1_omit_aggregation_missing_colname(self):
         self.assertEqual(migrate_params({
-            **self.defaults,
+            **self.v1_defaults,
             # SUM(*) AS A (which isn't valid)
             'operation|operation|0': 2,
             'targetcolumn|operation|0': '',
@@ -143,6 +143,57 @@ class MigrateParamsV1Test(unittest.TestCase):
         })['aggregations'], [
             {'operation': 'nunique', 'colname': '', 'outname': 'B'},
         ])
+
+    def test_migrate_v2_no_colnames(self):
+        self.assertEqual(migrate_params({
+            'groups': {
+                'colnames': '',
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [],
+        }), {
+            'groups': {
+                'colnames': [],
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [],
+        })
+
+    def test_migrate_v2(self):
+        self.assertEqual(migrate_params({
+            'groups': {
+                'colnames': 'A,B',
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [],
+        }), {
+            'groups': {
+                'colnames': ['A', 'B'],
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [],
+        })
+
+    def test_migrate_v3(self):
+        self.assertEqual(migrate_params({
+            'groups': {
+                'colnames': ['A', 'B'],
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [],
+        }), {
+            'groups': {
+                'colnames': ['A', 'B'],
+                'group_dates': False,
+                'date_granularities': {},
+            },
+            'aggregations': [],
+        })
 
 
 class GroupbyTest(unittest.TestCase):
@@ -399,7 +450,7 @@ class RenderTest(unittest.TestCase):
         table = pd.DataFrame({'A': [1, 2]})
         result = render(table, {
             'groups': {
-                'colnames': '',
+                'colnames': [],
                 'group_dates': False,
                 'date_granularities': {},
             },
@@ -413,7 +464,7 @@ class RenderTest(unittest.TestCase):
         table = pd.DataFrame({'A': [1, 2]})
         result = render(table, {
             'groups': {
-                'colnames': 'A',
+                'colnames': ['A'],
                 'group_dates': False,
                 'date_granularities': {},
             },
@@ -432,7 +483,7 @@ class RenderTest(unittest.TestCase):
                 'C': ['a', 'b', 'a'],
             }), {
                 'groups': {
-                    'colnames': 'A',
+                    'colnames': ['A'],
                     'group_dates': False,
                     'date_granularities': {},
                 },
@@ -448,7 +499,7 @@ class RenderTest(unittest.TestCase):
                 {
                     'text': 'Convert',
                     'action': 'prependModule',
-                    'args': ['extract-numbers', {'colnames': 'B,C'}],
+                    'args': ['converttexttonumber', {'colnames': ['B', 'C']}],
                 },
             ],
         })
@@ -467,7 +518,7 @@ class RenderTest(unittest.TestCase):
                 'B': [dt(2019, 1, 4)],  # so we don't trigger quickfix
             }), {
                 'groups': {
-                    'colnames': 'A',
+                    'colnames': ['A'],
                     'group_dates': True,
                     'date_granularities': {'A': 'T'},
                 },
