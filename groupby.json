@@ -9,7 +9,7 @@
     "groups": {
       "type": "dict",
       "properties": {
-        "colnames": { "type": "multicolumn", "deprecated_string_storage": false },
+        "colnames": { "type": "multicolumn" },
         "group_dates": { "type": "boolean" },
         "date_granularities": {
           "type": "map",
