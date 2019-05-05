@@ -1,5 +1,6 @@
 from datetime import datetime as dt
 import unittest
+import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from groupby import render, migrate_params, groupby, Group, Aggregation, \
@@ -222,6 +223,19 @@ class GroupbyTest(unittest.TestCase):
             'A': [1, 1, 2],
             'B': [1, 2, 2],
             'D': [1, -1, 0],
+        }))
+
+    def test_multilevel_with_na_remove_unused_category(self):
+        result = groupby(
+            pd.DataFrame({'A': ['a1', 'a2'], 'B': ['b1', np.nan]},
+                         dtype='category'),
+            [Group('A', None), Group('B', None)],
+            [Aggregation(Operation.SIZE, '', 'X')]
+        )
+        assert_frame_equal(result, pd.DataFrame({
+            'A': pd.Series(['a1'], dtype='category'),
+            'B': pd.Series(['b1'], dtype='category'),
+            'X': [1],
         }))
 
     def test_allow_duplicate_aggregations(self):

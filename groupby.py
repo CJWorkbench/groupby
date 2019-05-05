@@ -302,6 +302,11 @@ def groupby(table: pd.DataFrame, groups: List[Group],
         if agg_sets:
             aggs = grouped.agg(agg_sets)
         out = aggs.index.to_frame(index=False)
+        # Remove unused categories (because `np.nan` deletes categories)
+        for column in out:
+            series = out[column]
+            if hasattr(series, 'cat'):
+                series.cat.remove_unused_categories(inplace=True)
     else:
         # aggs: DataFrame with just one row
         # out: one empty row, no columns yet
