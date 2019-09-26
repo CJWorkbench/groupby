@@ -302,14 +302,16 @@ def groupby(
         and hasattr(table[colname], "cat")
     }
     for colname in category_colnames:
-        table[colname] = table[colname].cat.as_ordered()
+        table[colname].cat.as_ordered(inplace=True)
+        # Add dummy "size" to work around
+        # https://github.com/pandas-dev/pandas/issues/28641
+        agg_sets[colname].add("size")
 
     if group_specs:
         # aggs: DataFrame indexed by group
         # out: just the group colnames, no values yet (we'll add them later)
-        grouped = table.groupby(group_specs)
-        if agg_sets:
-            aggs = grouped.agg(agg_sets)
+        grouped = table.groupby(group_specs, as_index=True)
+        aggs = grouped.agg(agg_sets)
         out = aggs.index.to_frame(index=False)
         # Remove unused categories (because `np.nan` deletes categories)
         for column in out:
@@ -320,8 +322,7 @@ def groupby(
         # aggs: DataFrame with just one row
         # out: one empty row, no columns yet
         grouped = table
-        if agg_sets:
-            aggs = table.agg(agg_sets)
+        aggs = table.agg(agg_sets)
         out = pd.DataFrame(columns=[], index=[0])
 
     # Now copy values from `aggs` into `out`. (They have the same index.)
@@ -348,7 +349,7 @@ def groupby(
 
     # Remember those category colnames we converted to ordered? Now we need to
     # undo that (and remove newly-unused categories).
-    for colname in out.columns:
+    for colname in list(out.columns):
         column = out[colname]
         if hasattr(column, "cat") and column.cat.ordered:
             column.cat.remove_unused_categories(inplace=True)

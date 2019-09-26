@@ -395,6 +395,22 @@ class GroupbyTest(unittest.TestCase):
             ),
         )
 
+    def test_aggregate_text_category_values_max(self):
+        # https://github.com/pandas-dev/pandas/issues/28641
+        result = groupby(
+            pd.DataFrame(
+                {"A": [1997], "B": pd.Series(["30-SEP-97"], dtype="category")}
+            ),
+            [Group("A", None)],
+            [Aggregation(Operation.MAX, "B", "X")],
+        )
+        assert_frame_equal(
+            result,
+            pd.DataFrame(
+                {"A": [1997], "X": pd.Series(["30-SEP-97"], dtype="category")}
+            ),
+        )
+
     def test_aggregate_text_category_values_empty_still_has_object_dtype(self):
         result = groupby(
             pd.DataFrame({"A": [None]}, dtype=str).astype("category"),
