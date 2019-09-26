@@ -341,7 +341,7 @@ class GroupbyTest(unittest.TestCase):
             ),
         )
 
-    def test_aggregate_strings(self):
+    def test_aggregate_text_values(self):
         result = groupby(
             pd.DataFrame({"A": [1, 1, 1], "B": ["a", "b", "a"]}),
             [Group("A", None)],
@@ -363,6 +363,60 @@ class GroupbyTest(unittest.TestCase):
                     "min": ["a"],
                     "max": ["b"],
                     "first": ["a"],
+                }
+            ),
+        )
+
+    def test_aggregate_text_category_values(self):
+        result = groupby(
+            pd.DataFrame(
+                {"A": [1, 1, 1], "B": pd.Series(["a", "b", "a"], dtype="category")}
+            ),
+            [Group("A", None)],
+            [
+                Aggregation(Operation.SIZE, "B", "size"),
+                Aggregation(Operation.NUNIQUE, "B", "nunique"),
+                Aggregation(Operation.MIN, "B", "min"),
+                Aggregation(Operation.MAX, "B", "max"),
+                Aggregation(Operation.FIRST, "B", "first"),
+            ],
+        )
+        assert_frame_equal(
+            result,
+            pd.DataFrame(
+                {
+                    "A": [1],
+                    "size": [3],
+                    "nunique": [2],
+                    "min": pd.Series(["a"], dtype="category"),
+                    "max": pd.Series(["b"], dtype="category"),
+                    "first": pd.Series(["a"], dtype="category"),
+                }
+            ),
+        )
+
+    def test_aggregate_text_category_values_empty_still_has_object_dtype(self):
+        result = groupby(
+            pd.DataFrame({"A": [None]}, dtype=str).astype("category"),
+            [Group("A", None)],
+            [
+                Aggregation(Operation.SIZE, "A", "size"),
+                Aggregation(Operation.NUNIQUE, "A", "nunique"),
+                Aggregation(Operation.MIN, "A", "min"),
+                Aggregation(Operation.MAX, "A", "max"),
+                Aggregation(Operation.FIRST, "A", "first"),
+            ],
+        )
+        assert_frame_equal(
+            result,
+            pd.DataFrame(
+                {
+                    "A": pd.Series([], dtype=str).astype("category"),
+                    "size": pd.Series([], dtype=int),
+                    "nunique": pd.Series([], dtype=int),
+                    "min": pd.Series([], dtype=str).astype("category"),
+                    "max": pd.Series([], dtype=str).astype("category"),
+                    "first": pd.Series([], dtype=str).astype("category"),
                 }
             ),
         )

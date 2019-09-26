@@ -294,6 +294,16 @@ def groupby(
         # (hopefully) the least computationally-intense.
         agg_sets = "size"
 
+    # Got categoricals? Order the categories, so min/max work
+    category_colnames = {
+        agg.colname
+        for agg in aggregations
+        if agg.operation in {Operation.MIN, Operation.MAX}
+        and hasattr(table[colname], "cat")
+    }
+    for colname in category_colnames:
+        table[colname] = table[colname].cat.as_ordered()
+
     if group_specs:
         # aggs: DataFrame indexed by group
         # out: just the group colnames, no values yet (we'll add them later)
@@ -335,6 +345,14 @@ def groupby(
                 out[outname] = series.values
             except AttributeError:
                 out[outname] = series
+
+    # Remember those category colnames we converted to ordered? Now we need to
+    # undo that (and remove newly-unused categories).
+    for colname in out.columns:
+        column = out[colname]
+        if hasattr(column, "cat") and column.cat.ordered:
+            column.cat.remove_unused_categories(inplace=True)
+            column.cat.as_unordered(inplace=True)
 
     return out
 
