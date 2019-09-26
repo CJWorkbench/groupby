@@ -189,6 +189,7 @@ class Operation(Enum):
     NUNIQUE = "nunique"
     SUM = "sum"
     MEAN = "mean"
+    MEDIAN = "median"
     MIN = "min"
     MAX = "max"
     FIRST = "first"
@@ -197,7 +198,7 @@ class Operation(Enum):
         return self != self.SIZE
 
     def needs_numeric_column(self):
-        return self in {self.SUM, self.MEAN}
+        return self in {self.SUM, self.MEAN, self.MEDIAN}
 
     def default_outname(self, colname):
         if self == self.SIZE:
@@ -207,6 +208,7 @@ class Operation(Enum):
             self.NUNIQUE: "Unique count",
             self.SUM: "Sum",
             self.MEAN: "Average",
+            self.MEDIAN: "Median",
             self.MIN: "Minimum",
             self.MAX: "Maximum",
             self.FIRST: "First",
