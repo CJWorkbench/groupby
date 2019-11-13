@@ -302,7 +302,7 @@ def groupby(
         and hasattr(table[colname], "cat")
     }
     for colname in category_colnames:
-        table[colname].cat.as_ordered(inplace=True)
+        table[colname] = table[colname].cat.as_ordered()
         # Add dummy "size" to work around
         # https://github.com/pandas-dev/pandas/issues/28641
         agg_sets[colname].add("size")
