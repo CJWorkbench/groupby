@@ -411,6 +411,25 @@ class GroupbyTest(unittest.TestCase):
             ),
         )
 
+    def test_aggregate_text_category_values_with_multiple_agg_columns(self):
+        # Typo uncovered [2019-11-14] meant we'd only call .as_ordered() when
+        # the _last_ column was categorical (as opposed to when the
+        # _categorical_ column was categorical).
+        result = groupby(
+            pd.DataFrame({"A": [1997], "B": pd.Series(["b"], dtype="category")}),
+            [Group("A", None)],
+            [
+                Aggregation(Operation.MAX, "B", "X"),
+                Aggregation(Operation.MIN, "A", "Y"),
+            ],
+        )
+        assert_frame_equal(
+            result,
+            pd.DataFrame(
+                {"A": [1997], "X": pd.Series(["b"], dtype="category"), "Y": [1997]}
+            ),
+        )
+
     def test_aggregate_text_category_values_empty_still_has_object_dtype(self):
         result = groupby(
             pd.DataFrame({"A": [None]}, dtype=str).astype("category"),

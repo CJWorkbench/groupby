@@ -280,38 +280,41 @@ def groupby(
 ) -> pd.DataFrame:
     group_specs = [group_to_spec(group, table) for group in groups]
 
-    # Build agg_sets: {colname => {op1, op2}}
-    #
-    # We'll pass this to pandas. Don't worry about ordering.
+    # Build agg_sets: {colname => {op1, op2}}. Don't worry about ordering.
+    # Use sets so we don't pass Pandas the same op twice.
     agg_sets = {}
     for aggregation in aggregations:
         if aggregation.operation != Operation.SIZE:
             op = aggregation.operation.value
             colname = aggregation.colname
             agg_sets.setdefault(colname, set()).add(op)
-    if not agg_sets:
-        # We need to pass _something_ to agg(). Pass 'size', which is
-        # (hopefully) the least computationally-intense.
-        agg_sets = "size"
 
     # Got categoricals? Order the categories, so min/max work
     category_colnames = {
         agg.colname
         for agg in aggregations
         if agg.operation in {Operation.MIN, Operation.MAX}
-        and hasattr(table[colname], "cat")
+        and hasattr(table[agg.colname], "cat")
     }
     for colname in category_colnames:
-        table[colname] = table[colname].cat.as_ordered()
+        table[colname].cat.as_ordered(inplace=True)
         # Add dummy "size" to work around
         # https://github.com/pandas-dev/pandas/issues/28641
         agg_sets[colname].add("size")
+
+    if agg_sets:
+        # Pandas takes lists, not sets
+        agg_spec = {colname: list(ops) for colname, ops in agg_sets.items()}
+    else:
+        # We need to pass _something_ to agg(). Pass 'size', which is
+        # (hopefully) the least computationally-intense.
+        agg_spec = "size"
 
     if group_specs:
         # aggs: DataFrame indexed by group
         # out: just the group colnames, no values yet (we'll add them later)
         grouped = table.groupby(group_specs, as_index=True)
-        aggs = grouped.agg(agg_sets)
+        aggs = grouped.agg(agg_spec)
         out = aggs.index.to_frame(index=False)
         # Remove unused categories (because `np.nan` deletes categories)
         for column in out:
@@ -322,7 +325,7 @@ def groupby(
         # aggs: DataFrame with just one row
         # out: one empty row, no columns yet
         grouped = table
-        aggs = table.agg(agg_sets)
+        aggs = table.agg(agg_spec)
         out = pd.DataFrame(columns=[], index=[0])
 
     # Now copy values from `aggs` into `out`. (They have the same index.)
