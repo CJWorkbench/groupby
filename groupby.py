@@ -313,7 +313,11 @@ def groupby(
     if group_specs:
         # aggs: DataFrame indexed by group
         # out: just the group colnames, no values yet (we'll add them later)
-        grouped = table.groupby(group_specs, as_index=True)
+        #
+        # Special case for categoricals: .groupby(observed=True) is needed,
+        # because .groupby(observed=False), the default, does something no user
+        # would expect. https://github.com/pandas-dev/pandas/pull/20583
+        grouped = table.groupby(group_specs, as_index=True, observed=True)
         aggs = grouped.agg(agg_spec)
         out = aggs.index.to_frame(index=False)
         # Remove unused categories (because `np.nan` deletes categories)

@@ -280,6 +280,41 @@ class GroupbyTest(unittest.TestCase):
             ),
         )
 
+    def test_do_not_multiply_categories(self):
+        # Pandas default, when given categoricals, is to multiply them out:
+        # in this example, we'd get four rows:
+        #
+        #     a, c
+        #     a, d
+        #     b, c
+        #     b, d
+        #
+        # ... even though there are no values for (a, d) or (b, c).
+        #
+        # See https://github.com/pandas-dev/pandas/issues/17594. The solution
+        # is .groupby(..., observed=True).
+        result = groupby(
+            pd.DataFrame(
+                {
+                    "A": pd.Series(["a", "b"], dtype="category"),
+                    "B": pd.Series(["c", "d"], dtype="category"),
+                    "C": [1, 2],
+                }
+            ),
+            [Group("A", None), Group("B", None)],
+            [Aggregation(Operation.SUM, "C", "X")],
+        )
+        assert_frame_equal(
+            result,
+            pd.DataFrame(
+                {
+                    "A": pd.Series(["a", "b"], dtype="category"),
+                    "B": pd.Series(["c", "d"], dtype="category"),
+                    "X": [1, 2],
+                }
+            ),
+        )
+
     def test_allow_duplicate_aggregations(self):
         result = groupby(
             pd.DataFrame({"A": [1, 1, 2], "B": [1, 2, 3]}),
