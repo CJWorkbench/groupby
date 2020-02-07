@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Union, Set
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
+from cjwmodule import i18n
 
 
 def migrate_params(params):
@@ -407,19 +408,19 @@ def render(table, params):
             if not is_numeric_dtype(series) and colname not in non_numeric_colnames:
                 non_numeric_colnames.append(colname)
     if non_numeric_colnames:
-        if len(non_numeric_colnames) == 1:
-            pluralized_column = "Column"
-        else:
-            pluralized_column = "Columns"
-
         return {
-            "error": (
-                "%s %s must be Numbers"
-                % (pluralized_column, ", ".join(f'"{x}"' for x in non_numeric_colnames))
+            # i18n: {column_names} will be something like '"Column name 1", "Column name 2", "Column name 3"'
+            "error": i18n.trans(
+                "non_numeric_colnames.error", 
+                "{n_columns, plural, one {Column} other {Columns}} {column_names} must be Numbers",
+                {
+                    "n_columns": len(non_numeric_colnames), 
+                    "column_names": ", ".join(f'"{x}"' for x in non_numeric_colnames)
+                }
             ),
             "quick_fixes": [
                 {
-                    "text": "Convert",
+                    "text": i18n.trans("non_numeric_colnames.quick_fix.text", "Convert"),
                     "action": "prependModule",
                     "args": ["converttexttonumber", {"colnames": non_numeric_colnames}],
                 }

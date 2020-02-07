@@ -12,6 +12,7 @@ from groupby import (
     Operation,
     DateGranularity,
 )
+from cjwmodule.testing.i18n import i18n_message
 
 
 class MigrateParamsTest(unittest.TestCase):
@@ -684,10 +685,13 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(
             result,
             {
-                "error": 'Columns "B", "C" must be Numbers',
+                "error": i18n_message(
+                    "non_numeric_colnames.error", 
+                    {"n_columns": 2, "column_names": '"B", "C"'}
+                ),
                 "quick_fixes": [
                     {
-                        "text": "Convert",
+                        "text": i18n_message("non_numeric_colnames.quick_fix.text"),
                         "action": "prependModule",
                         "args": ["converttexttonumber", {"colnames": ["B", "C"]}],
                     }
