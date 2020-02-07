@@ -409,7 +409,6 @@ def render(table, params):
                 non_numeric_colnames.append(colname)
     if non_numeric_colnames:
         return {
-            # i18n: {column_names} will be something like '"Column name 1", "Column name 2", "Column name 3"'
             "error": i18n.trans(
                 "non_numeric_colnames.error", 
                 "{n_columns, plural, one {Column} other {Columns}} {column_names} must be Numbers",
