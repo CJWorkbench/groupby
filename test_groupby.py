@@ -687,7 +687,7 @@ class RenderTest(unittest.TestCase):
             {
                 "error": i18n_message(
                     "non_numeric_colnames.error", 
-                    {"n_columns": 2, "column_names": '"B", "C"'}
+                    {"n_columns": 2, "first_colname": "B"}
                 ),
                 "quick_fixes": [
                     {

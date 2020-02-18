@@ -411,10 +411,13 @@ def render(table, params):
         return {
             "error": i18n.trans(
                 "non_numeric_colnames.error", 
-                "{n_columns, plural, one {Column} other {Columns}} {column_names} must be Numbers",
+                "{n_columns, plural,"
+                ' one {Column "{first_colname}"}'
+                ' other {# columns (see "{first_colname}")}} '
+                "must be Numbers",
                 {
                     "n_columns": len(non_numeric_colnames), 
-                    "column_names": ", ".join(f'"{x}"' for x in non_numeric_colnames)
+                    "first_colname": non_numeric_colnames[0]
                 }
             ),
             "quick_fixes": [
