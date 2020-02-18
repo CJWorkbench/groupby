@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-02-07 16:33+0000\n"
+"POT-Creation-Date: 2020-02-18 15:40+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: el\n"
@@ -20,10 +20,13 @@ msgstr ""
 "Generated-By: Babel 2.8.0\n"
 
 msgid "_spec.name"
-msgstr ""
+msgstr "Ομαδοποίηση"
 
 msgid "_spec.description"
 msgstr ""
+"Ομαδοποίηση σειρών βάσει τιμών μέσα σε στήλες («συγκεντρωτικοί πίνακες»)."
+" Υπολογίστε άθροισμα, μέσους όρους, ελάχιστο, μέγιστο και άλλα για κάθε "
+"ομάδα."
 
 #: groupby.py:417
 msgid "non_numeric_colnames.error"
