@@ -32,7 +32,7 @@ msgstr ""
 msgid "non_numeric_colnames.error"
 msgstr ""
 "{n_columns, plural, one {Η στήλη \"{first_colname}\" πρέπει να περιέχει} "
-"other {# στήλες (δες \"{first_colname}\") πρέπει να περιέχουν}} αριθμούς"
+"other {# στήλες (δείτε \"{first_colname}\") πρέπει να περιέχουν}} αριθμούς"
 
 #: groupby.py:425
 msgid "non_numeric_colnames.quick_fix.text"
