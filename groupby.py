@@ -167,6 +167,7 @@ class DateGranularity(Enum):
     MINUTE = "T"
     HOUR = "H"
     DAY = "D"
+    WEEK = "W"
     MONTH = "M"
     QUARTER = "Q"
     YEAR = "Y"
@@ -270,6 +271,19 @@ def group_to_spec(group: Group, table: pd.DataFrame) -> Union[str, pd.Series]:
             month_numbers = series.values.astype("M8[M]").astype("int")
             rounded_month_numbers = np.floor_divide(month_numbers, 3) * 3
             values = rounded_month_numbers.astype("M8[M]")
+        elif group.date_granularity == DateGranularity.WEEK:
+            # numpy "week" is counted from the Epoch -- which happens to be
+            # a Thursday. But ISO weeks start Monday, not Thursday -- and so
+            # Numpy's "W" type is useless.
+            #
+            # We do integer math: add 3 to each date and then floor-divide by
+            # 7. That makes "1970-01-01 [Thursday] + 3" => Sunday -- so when
+            # we floor-divide, everything from Monday to Sunday falls in the
+            # same bucket. We could group by this ... but we convert back to
+            # day and subtract the 3, so the group can be formatted.
+            day_numbers = series.values.astype("M8[D]").astype("int")
+            rounded_day_numbers = np.floor_divide(day_numbers + 3, 7) * 7 - 3
+            values = rounded_day_numbers.astype("M8[D]")
         else:
             freq = group.date_granularity.numpy_unit
             values = series.values.astype("M8[" + freq + "]")
@@ -410,19 +424,21 @@ def render(table, params):
     if non_numeric_colnames:
         return {
             "error": i18n.trans(
-                "non_numeric_colnames.error", 
+                "non_numeric_colnames.error",
                 "{n_columns, plural,"
                 ' one {Column "{first_colname}"}'
                 ' other {# columns (see "{first_colname}")}} '
                 "must be Numbers",
                 {
-                    "n_columns": len(non_numeric_colnames), 
-                    "first_colname": non_numeric_colnames[0]
-                }
+                    "n_columns": len(non_numeric_colnames),
+                    "first_colname": non_numeric_colnames[0],
+                },
             ),
             "quick_fixes": [
                 {
-                    "text": i18n.trans("non_numeric_colnames.quick_fix.text", "Convert"),
+                    "text": i18n.trans(
+                        "non_numeric_colnames.quick_fix.text", "Convert"
+                    ),
                     "action": "prependModule",
                     "args": ["converttexttonumber", {"colnames": non_numeric_colnames}],
                 }

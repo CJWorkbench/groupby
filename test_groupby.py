@@ -586,6 +586,17 @@ class GroupbyTest(unittest.TestCase):
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 2, 4)], "size": [2, 1]}),
         )
 
+    def test_aggregate_datetime_by_week(self):
+        result = groupby(
+            pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 2, 4), dt(2018, 1, 6)]}),
+            [Group("A", DateGranularity.WEEK)],
+            [Aggregation(Operation.SIZE, "", "size")],
+        )
+        assert_frame_equal(
+            result,
+            pd.DataFrame({"A": [dt(2018, 1, 1), dt(2018, 1, 29)], "size": [2, 1]}),
+        )
+
     def test_aggregate_datetime_by_month(self):
         result = groupby(
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 2, 4), dt(2018, 1, 6)]}),
@@ -686,8 +697,7 @@ class RenderTest(unittest.TestCase):
             result,
             {
                 "error": i18n_message(
-                    "non_numeric_colnames.error", 
-                    {"n_columns": 2, "first_colname": "B"}
+                    "non_numeric_colnames.error", {"n_columns": 2, "first_colname": "B"}
                 ),
                 "quick_fixes": [
                     {
