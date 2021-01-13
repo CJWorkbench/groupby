@@ -1,18 +1,20 @@
-from datetime import datetime as dt
 import unittest
+from datetime import datetime as dt
+
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_frame_equal
-from groupby import (
-    render,
-    migrate_params,
-    groupby,
-    Group,
-    Aggregation,
-    Operation,
-    DateGranularity,
-)
 from cjwmodule.testing.i18n import i18n_message
+from pandas.testing import assert_frame_equal
+
+from groupby import (
+    Aggregation,
+    DateGranularity,
+    Group,
+    Operation,
+    groupby,
+    migrate_params,
+    render,
+)
 
 
 class MigrateParamsTest(unittest.TestCase):
@@ -597,6 +599,14 @@ class GroupbyTest(unittest.TestCase):
             pd.DataFrame({"A": [dt(2018, 1, 1), dt(2018, 1, 29)], "size": [2, 1]}),
         )
 
+    def test_aggregate_null_datetime_by_week(self):
+        result = groupby(
+            pd.DataFrame({"A": [pd.NaT]}),
+            [Group("A", DateGranularity.WEEK)],
+            [Aggregation(Operation.SIZE, "", "size")],
+        )
+        self.assertEqual(len(result), 0)
+
     def test_aggregate_datetime_by_month(self):
         result = groupby(
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 2, 4), dt(2018, 1, 6)]}),
@@ -618,6 +628,14 @@ class GroupbyTest(unittest.TestCase):
             result,
             pd.DataFrame({"A": [dt(2018, 1, 1), dt(2018, 4, 1)], "size": [2, 1]}),
         )
+
+    def test_aggregate_null_datetime_by_quarter(self):
+        result = groupby(
+            pd.DataFrame({"A": [pd.NaT]}),
+            [Group("A", DateGranularity.QUARTER)],
+            [Aggregation(Operation.SIZE, "", "size")],
+        )
+        self.assertEqual(len(result), 0)
 
     def test_aggregate_datetime_by_year(self):
         result = groupby(

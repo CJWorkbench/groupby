@@ -1,10 +1,10 @@
-from collections import namedtuple
 from enum import Enum
-from typing import Dict, List, Optional, Union, Set
+from typing import Dict, List, NamedTuple, Optional, Set, Union
+
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
 from cjwmodule import i18n
+from pandas.api.types import is_numeric_dtype
 
 
 def migrate_params(params):
@@ -219,8 +219,15 @@ class Operation(Enum):
         return "%s of %s" % (verb, colname)
 
 
-Group = namedtuple("Group", ["colname", "date_granularity"])
-Aggregation = namedtuple("Aggregation", ["operation", "colname", "outname"])
+class Group(NamedTuple):
+    colname: str
+    date_granularity: Optional[DateGranularity]
+
+
+class Aggregation(NamedTuple):
+    operation: Operation
+    colname: str
+    outname: str
 
 
 def parse_groups(
@@ -268,9 +275,10 @@ def group_to_spec(group: Group, table: pd.DataFrame) -> Union[str, pd.Series]:
         series = table[group.colname]
         if group.date_granularity == DateGranularity.QUARTER:
             # numpy has no "quarter" so we'll need to do something funky
-            month_numbers = series.values.astype("M8[M]").astype("int")
+            month_numbers = series.values.astype("datetime64[M]").astype("int")
             rounded_month_numbers = np.floor_divide(month_numbers, 3) * 3
-            values = rounded_month_numbers.astype("M8[M]")
+            values = rounded_month_numbers.astype("datetime64[M]")
+            values[np.isnat(series.values)] = np.datetime64("NaT")
         elif group.date_granularity == DateGranularity.WEEK:
             # numpy "week" is counted from the Epoch -- which happens to be
             # a Thursday. But ISO weeks start Monday, not Thursday -- and so
@@ -281,12 +289,13 @@ def group_to_spec(group: Group, table: pd.DataFrame) -> Union[str, pd.Series]:
             # we floor-divide, everything from Monday to Sunday falls in the
             # same bucket. We could group by this ... but we convert back to
             # day and subtract the 3, so the group can be formatted.
-            day_numbers = series.values.astype("M8[D]").astype("int")
+            day_numbers = series.values.astype("datetime64[D]").astype("int")
             rounded_day_numbers = np.floor_divide(day_numbers + 3, 7) * 7 - 3
-            values = rounded_day_numbers.astype("M8[D]")
+            values = rounded_day_numbers.astype("datetime64[D]")
+            values[np.isnat(series.values)] = np.datetime64("NaT")
         else:
             freq = group.date_granularity.numpy_unit
-            values = series.values.astype("M8[" + freq + "]")
+            values = series.values.astype("datetime64[" + freq + "]")
         return pd.Series(values, name=group.colname)
 
 
