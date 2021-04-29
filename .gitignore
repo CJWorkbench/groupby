@@ -3,5 +3,7 @@
 .idea
 tmp/
 .cache/
+.tox/
+.coverage
 __pycache__/
 .DS_Store

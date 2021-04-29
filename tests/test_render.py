@@ -12,235 +12,8 @@ from groupby import (
     Group,
     Operation,
     groupby,
-    migrate_params,
     render,
 )
-
-
-class MigrateParamsTest(unittest.TestCase):
-    v1_defaults = {
-        "groupby|groupby|0": "",
-        "groupby|groupby|1": "",
-        "active.addremove.last|groupby|1": False,
-        "operation|operation|0": 0,
-        "targetcolumn|operation|0": "",
-        "outputname|operation|0": "",
-        "operation.show-sibling|operation|1": 0,
-        "targetcolumn.hide-with-sibling|operation|1": "",
-        "outputname|operation|1": "",
-        "cheat.cheat|operation|1": False,
-        "active.addremove|operation|1": False,
-        "operation.show-sibling|operation|2": 0,
-        "targetcolumn.hide-with-sibling|operation|2": "",
-        "outputname|operation|2": "",
-        "cheat.cheat|operation|2": False,
-        "active.addremove|operation|2": False,
-        "operation.show-sibling|operation|3": 0,
-        "targetcolumn.hide-with-sibling|operation|3": "",
-        "outputname|operation|3": "",
-        "cheat.cheat|operation|3": False,
-        "active.addremove|operation|3": False,
-        "operation.show-sibling|operation|4": 0,
-        "targetcolumn.hide-with-sibling|operation|4": "",
-        "outputname|operation|4": "",
-        "cheat.cheat|operation|4": False,
-        "active.addremove.last|operation|4": False,
-    }
-
-    def test_migrate_v1_default(self):
-        self.assertEqual(
-            migrate_params(self.v1_defaults),
-            {
-                "groups": {
-                    "colnames": [],
-                    "group_dates": False,
-                    "date_granularities": {},
-                },
-                "aggregations": [{"operation": "size", "colname": "", "outname": ""}],
-            },
-        )
-
-    def test_migrate_v1_two_colnames(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    **self.v1_defaults,
-                    "groupby|groupby|0": "a",
-                    "groupby|groupby|1": "b",
-                    "active.addremove.last|groupby|1": True,
-                }
-            )["groups"]["colnames"],
-            ["a", "b"],
-        )
-
-    def test_migrate_v1_two_colnames_but_second_not_active(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    **self.v1_defaults,
-                    "groupby|groupby|0": "a",
-                    "groupby|groupby|1": "b",
-                    "active.addremove.last|groupby|1": False,
-                }
-            )["groups"]["colnames"],
-            ["a"],
-        )
-
-    def test_migrate_v1_aggregation(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    **self.v1_defaults,
-                    "operation|operation|0": 5,
-                    "targetcolumn|operation|0": "c",
-                    "outputname|operation|0": "C",
-                }
-            )["aggregations"],
-            [{"operation": "max", "colname": "c", "outname": "C"}],
-        )
-
-    def test_migrate_v1_only_active_aggregations(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    **self.v1_defaults,
-                    "operation|operation|0": 5,
-                    "targetcolumn|operation|0": "c",
-                    "outputname|operation|0": "C",
-                    "active.addremove|operation|1": False,
-                    # The next operation isn't active, so it will be ignored
-                    "operation.show-sibling|operation|1": 2,
-                    "targetcolumn.hide-with-sibling|operation|1": "d",
-                    "outputname|operation|1": "D",
-                }
-            )["aggregations"],
-            [{"operation": "max", "colname": "c", "outname": "C"}],
-        )
-
-    def test_migrate_v1_many_aggregations(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    **self.v1_defaults,
-                    # COUNT(*) AS A
-                    "operation|operation|0": 0,
-                    "targetcolumn|operation|0": "",
-                    "outputname|operation|0": "A",
-                    # COUNT DISTINCT(*) AS B
-                    "active.addremove|operation|1": True,
-                    "operation.show-sibling|operation|1": 1,
-                    "targetcolumn.hide-with-sibling|operation|1": "",
-                    "outputname|operation|1": "B",
-                    # SUM(c) AS C
-                    "active.addremove|operation|2": True,
-                    "operation.show-sibling|operation|2": 2,
-                    "targetcolumn.hide-with-sibling|operation|2": "c",
-                    "outputname|operation|2": "C",
-                    # MEAN(d) AS D
-                    "active.addremove|operation|3": True,
-                    "operation.show-sibling|operation|3": 3,
-                    "targetcolumn.hide-with-sibling|operation|3": "d",
-                    "outputname|operation|3": "D",
-                    # MAX(e) AS E
-                    "active.addremove|operation|4": True,
-                    "operation.show-sibling|operation|4": 4,
-                    "targetcolumn.hide-with-sibling|operation|4": "e",
-                    "outputname|operation|4": "E",
-                }
-            )["aggregations"],
-            [
-                {"operation": "size", "colname": "", "outname": "A"},
-                {"operation": "nunique", "colname": "", "outname": "B"},
-                {"operation": "sum", "colname": "c", "outname": "C"},
-                {"operation": "mean", "colname": "d", "outname": "D"},
-                {"operation": "min", "colname": "e", "outname": "E"},
-            ],
-        )
-
-    def test_migrate_v1_omit_aggregation_missing_colname(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    **self.v1_defaults,
-                    # SUM(*) AS A (which isn't valid)
-                    "operation|operation|0": 2,
-                    "targetcolumn|operation|0": "",
-                    "outputname|operation|0": "A",
-                    # COUNT DISTINCT(*) AS B
-                    "active.addremove|operation|1": True,
-                    "operation.show-sibling|operation|1": 1,
-                    "targetcolumn.hide-with-sibling|operation|1": "",
-                    "outputname|operation|1": "B",
-                }
-            )["aggregations"],
-            [{"operation": "nunique", "colname": "", "outname": "B"}],
-        )
-
-    def test_migrate_v2_no_colnames(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    "groups": {
-                        "colnames": "",
-                        "group_dates": False,
-                        "date_granularities": {},
-                    },
-                    "aggregations": [],
-                }
-            ),
-            {
-                "groups": {
-                    "colnames": [],
-                    "group_dates": False,
-                    "date_granularities": {},
-                },
-                "aggregations": [],
-            },
-        )
-
-    def test_migrate_v2(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    "groups": {
-                        "colnames": "A,B",
-                        "group_dates": False,
-                        "date_granularities": {},
-                    },
-                    "aggregations": [],
-                }
-            ),
-            {
-                "groups": {
-                    "colnames": ["A", "B"],
-                    "group_dates": False,
-                    "date_granularities": {},
-                },
-                "aggregations": [],
-            },
-        )
-
-    def test_migrate_v3(self):
-        self.assertEqual(
-            migrate_params(
-                {
-                    "groups": {
-                        "colnames": ["A", "B"],
-                        "group_dates": False,
-                        "date_granularities": {},
-                    },
-                    "aggregations": [],
-                }
-            ),
-            {
-                "groups": {
-                    "colnames": ["A", "B"],
-                    "group_dates": False,
-                    "date_granularities": {},
-                },
-                "aggregations": [],
-            },
-        )
 
 
 class GroupbyTest(unittest.TestCase):
@@ -468,6 +241,26 @@ class GroupbyTest(unittest.TestCase):
             ),
         )
 
+    def test_first_in_category(self):
+        result = groupby(
+            pd.DataFrame(
+                {"A": ["MANHATTAN", "BROOKLYN"], "B": ["2018-02-28", "2018-02-28"]},
+                dtype="category",
+            ),
+            [Group("B", None)],
+            [Aggregation(Operation.NUNIQUE, "A", "first")],
+        )
+        assert_frame_equal(
+            result,
+            pd.DataFrame(
+                {
+                    "B": ["2018-02-28"],
+                    "first": ["MANHATTAN"],
+                },
+                dtype="category",
+            ),
+        )
+
     def test_aggregate_text_category_values_empty_still_has_object_dtype(self):
         result = groupby(
             pd.DataFrame({"A": [None]}, dtype=str).astype("category"),
@@ -494,7 +287,7 @@ class GroupbyTest(unittest.TestCase):
             ),
         )
 
-    def test_aggregate_datetime_no_granularity(self):
+    def test_aggregate_timestamp_no_granularity(self):
         result = groupby(
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 1, 5), dt(2018, 1, 4)]}),
             [Group("A", None)],
@@ -505,7 +298,7 @@ class GroupbyTest(unittest.TestCase):
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 1, 5)], "size": [2, 1]}),
         )
 
-    def test_aggregate_datetime_by_second(self):
+    def test_aggregate_timestamp_by_second(self):
         result = groupby(
             pd.DataFrame(
                 {
@@ -529,7 +322,7 @@ class GroupbyTest(unittest.TestCase):
             ),
         )
 
-    def test_aggregate_datetime_by_minute(self):
+    def test_aggregate_timestamp_by_minute(self):
         result = groupby(
             pd.DataFrame(
                 {
@@ -550,7 +343,7 @@ class GroupbyTest(unittest.TestCase):
             ),
         )
 
-    def test_aggregate_datetime_by_hour(self):
+    def test_aggregate_timestamp_by_hour(self):
         result = groupby(
             pd.DataFrame(
                 {
@@ -569,7 +362,7 @@ class GroupbyTest(unittest.TestCase):
             pd.DataFrame({"A": [dt(2018, 1, 4, 1), dt(2018, 1, 4, 2)], "size": [2, 1]}),
         )
 
-    def test_aggregate_datetime_by_day(self):
+    def test_aggregate_timestamp_by_day(self):
         result = groupby(
             pd.DataFrame(
                 {
@@ -588,7 +381,7 @@ class GroupbyTest(unittest.TestCase):
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 2, 4)], "size": [2, 1]}),
         )
 
-    def test_aggregate_datetime_by_week(self):
+    def test_aggregate_timestamp_by_week(self):
         result = groupby(
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 2, 4), dt(2018, 1, 6)]}),
             [Group("A", DateGranularity.WEEK)],
@@ -599,7 +392,7 @@ class GroupbyTest(unittest.TestCase):
             pd.DataFrame({"A": [dt(2018, 1, 1), dt(2018, 1, 29)], "size": [2, 1]}),
         )
 
-    def test_aggregate_null_datetime_by_week(self):
+    def test_aggregate_null_timestamp_by_week(self):
         result = groupby(
             pd.DataFrame({"A": [pd.NaT]}),
             [Group("A", DateGranularity.WEEK)],
@@ -607,7 +400,7 @@ class GroupbyTest(unittest.TestCase):
         )
         self.assertEqual(len(result), 0)
 
-    def test_aggregate_datetime_by_month(self):
+    def test_aggregate_timestamp_by_month(self):
         result = groupby(
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 2, 4), dt(2018, 1, 6)]}),
             [Group("A", DateGranularity.MONTH)],
@@ -618,7 +411,7 @@ class GroupbyTest(unittest.TestCase):
             pd.DataFrame({"A": [dt(2018, 1, 1), dt(2018, 2, 1)], "size": [2, 1]}),
         )
 
-    def test_aggregate_datetime_by_quarter(self):
+    def test_aggregate_timestamp_by_quarter(self):
         result = groupby(
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2018, 6, 4), dt(2018, 3, 4)]}),
             [Group("A", DateGranularity.QUARTER)],
@@ -629,7 +422,7 @@ class GroupbyTest(unittest.TestCase):
             pd.DataFrame({"A": [dt(2018, 1, 1), dt(2018, 4, 1)], "size": [2, 1]}),
         )
 
-    def test_aggregate_null_datetime_by_quarter(self):
+    def test_aggregate_null_timestamp_by_quarter(self):
         result = groupby(
             pd.DataFrame({"A": [pd.NaT]}),
             [Group("A", DateGranularity.QUARTER)],
@@ -637,7 +430,7 @@ class GroupbyTest(unittest.TestCase):
         )
         self.assertEqual(len(result), 0)
 
-    def test_aggregate_datetime_by_year(self):
+    def test_aggregate_timestamp_by_year(self):
         result = groupby(
             pd.DataFrame({"A": [dt(2018, 1, 4), dt(2019, 2, 4), dt(2018, 3, 4)]}),
             [Group("A", DateGranularity.YEAR)],

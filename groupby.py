@@ -266,9 +266,7 @@ def parse_aggregations(aggregations: List[Dict[str, str]]) -> List[Aggregation]:
 
 
 def group_to_spec(group: Group, table: pd.DataFrame) -> Union[str, pd.Series]:
-    """
-    Convert a Group to a Pandas .groupby() list item.
-    """
+    """Convert a Group to a Pandas .groupby() list item."""
     if group.date_granularity is None:
         return group.colname
     else:
@@ -344,6 +342,7 @@ def groupby(
         grouped = table.groupby(group_specs, as_index=True, observed=True)
         aggs = grouped.agg(agg_spec)
         out = aggs.index.to_frame(index=False)
+        # out.rename(columns={i: g.colname for i, g in enumerate(groups)}, inplace=True)
         # Remove unused categories (because `np.nan` deletes categories)
         for column in out:
             series = out[column]
