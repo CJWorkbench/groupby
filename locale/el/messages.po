@@ -1,14 +1,14 @@
 # Greek translations for PROJECT.
-# Copyright (C) 2020 ORGANIZATION
+# Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2021.
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-09-30 20:00+0000\n"
+"POT-Creation-Date: 2021-04-30 18:23+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: el\n"
@@ -17,7 +17,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.8.0\n"
+"Generated-By: Babel 2.9.0\n"
 
 msgid "_spec.name"
 msgstr "Ομαδοποίηση"
@@ -28,14 +28,14 @@ msgstr ""
 " Υπολογίστε άθροισμα, μέσους όρους, ελάχιστο, μέγιστο και άλλα για κάθε "
 "ομάδα."
 
-#: groupby.py:433
+#: groupby.py:710
 msgid "non_numeric_colnames.error"
 msgstr ""
 "{n_columns, plural, one {Η στήλη \"{first_colname}\" πρέπει να περιέχει} "
 "other {# στήλες (δείτε \"{first_colname}\") πρέπει να περιέχουν}} "
 "αριθμούς"
 
-#: groupby.py:439
+#: groupby.py:716
 msgid "non_numeric_colnames.quick_fix.text"
 msgstr "Μετατροπή"
 

@@ -1,10 +1,12 @@
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Union
+from typing import Any, Callable, Dict, FrozenSet, List, NamedTuple, Optional
 
 import numpy as np
-import pandas as pd
+import pyarrow as pa
+import pyarrow.compute
 from cjwmodule import i18n
-from pandas.api.types import is_numeric_dtype
+from cjwmodule.arrow.types import ArrowRenderResult
+from cjwmodule.types import QuickFix, QuickFixAction, RenderError
 
 
 def migrate_params(params):
@@ -184,6 +186,85 @@ class DateGranularity(Enum):
         }[self]
 
 
+def nonnull_group_splits(array: pa.Array, group_splits: np.array) -> np.array:
+    # in an array [null, 1, null, 2, null]
+    # with group_splits [1, 2, 3], groups are [null], [1], [null], [2, null]
+    # n_nulls_by_index will be [1, 1, 2, 2, 3]
+    n_nulls_by_index = np.cumsum(
+        array.is_null().to_numpy(zero_copy_only=False),
+        dtype=np.min_scalar_type(-len(array)),
+    )
+    # non-null array is [1, 2]
+    # we want groups [], [1], [], [2]
+    # we want nonnull_group_splits [0, 1, 1]
+    return group_splits - n_nulls_by_index[group_splits - 1]
+
+
+def size(*, num_rows: int, group_splits: np.array, **kwargs) -> pa.Array:
+    starts = np.insert(group_splits, 0, 0)
+    ends = np.append(group_splits, num_rows)
+    return pa.array(ends - starts, pa.int64())
+
+
+def nunique(*, array: pa.Array, group_splits: np.array, **kwargs) -> pa.Array:
+    nonnull_splits = nonnull_group_splits(array, group_splits)
+    nonnull_values = array.filter(array.is_valid()).to_numpy(zero_copy_only=False)
+    counts = np.fromiter(
+        (np.unique(subarr).size for subarr in np.split(nonnull_values, nonnull_splits)),
+        dtype=np.int64,
+        count=len(nonnull_splits) + 1,
+    )
+    return pa.array(counts)
+
+
+def first(*, array: pa.Array, group_splits: np.array, **kwargs) -> pa.Array:
+    nonnull_values = array.filter(array.is_valid())
+    nonnull_splits = nonnull_group_splits(array, group_splits)
+    starts = np.insert(nonnull_splits, 0, 0)
+    ends = np.append(nonnull_splits, len(nonnull_values))
+    nulls = starts == ends
+    indices = pa.array(starts, pa.int64(), mask=nulls)
+    return nonnull_values.take(indices)  # taking index NULL gives NULL
+
+
+def build_ufunc_wrapper(
+    np_func: Callable[[Any], np.array], force_otype=None
+) -> Callable[..., pa.Array]:
+    # @numba.njit
+    def call_ufunc(values: np.array, group_splits: np.array, otype, zero) -> np.array:
+        starts = np.append([0], group_splits)
+        ends = np.append(group_splits, len(values))
+        values = [
+            zero if start == end else np_func(values[start:end])
+            for start, end in zip(starts, ends)
+        ]
+        nulls = starts == ends
+        return np.array(values, dtype=otype), nulls
+
+    def ufunc_caller(*, array: pa.Array, group_splits: np.array, **kwargs) -> pa.Array:
+        nonnull_splits = nonnull_group_splits(array, group_splits)
+        nonnull_values = array.filter(array.is_valid()).to_numpy(zero_copy_only=False)
+        if force_otype:
+            otype = force_otype
+        else:
+            otype = nonnull_values.dtype
+        if pa.types.is_unicode(array.type):
+            zero = ""
+        else:
+            zero = otype.type()
+        np_result, np_nulls = call_ufunc(nonnull_values, nonnull_splits, otype, zero)
+        return pa.array(np_result, mask=np_nulls)
+
+    return ufunc_caller
+
+
+sum = build_ufunc_wrapper(np.sum)
+mean = build_ufunc_wrapper(np.mean, force_otype=np.dtype("float64"))
+median = build_ufunc_wrapper(np.median, force_otype=np.dtype("float64"))
+min = build_ufunc_wrapper(np.amin)
+max = build_ufunc_wrapper(np.amax)
+
+
 class Operation(Enum):
     # Aggregate function names as in pandas. See
     # https://pandas.pydata.org/pandas-docs/stable/api.html#computations-descriptive-stats
@@ -195,9 +276,6 @@ class Operation(Enum):
     MIN = "min"
     MAX = "max"
     FIRST = "first"
-
-    def needs_column(self):
-        return self != self.SIZE
 
     def needs_numeric_column(self):
         return self in {self.SUM, self.MEAN, self.MEDIAN}
@@ -232,7 +310,7 @@ class Aggregation(NamedTuple):
 
 def parse_groups(
     *,
-    date_colnames: Set[str],
+    date_colnames: FrozenSet[str],
     colnames: List[str],
     group_dates: bool,
     date_granularities: Dict[str, str],
@@ -265,140 +343,323 @@ def parse_aggregations(aggregations: List[Dict[str, str]]) -> List[Aggregation]:
     return [a for a in aggregations if a is not None]
 
 
-def group_to_spec(group: Group, table: pd.DataFrame) -> Union[str, pd.Series]:
-    """Convert a Group to a Pandas .groupby() list item."""
-    if group.date_granularity is None:
-        return group.colname
+def make_groupable_array(
+    array: pa.Array, date_granularity: Optional[DateGranularity]
+) -> pa.Array:
+    """Given an input array, return the array we will group by.
+
+    This is for handling DEPRECATED date conversions. The idea is: with input
+    value "2021-03-01T21:12:21.231212312Z", a "year" group should be
+    "2021-01-01Z".
+    """
+    if date_granularity is None:
+        return array
+
+    if date_granularity == DateGranularity.QUARTER:
+        np_datetime_ns = array.to_numpy(zero_copy_only=False)
+        np_datetime_m = np_datetime_ns.astype("datetime64[M]").astype(int)
+        rounded_month_numbers = np.floor_divide(np_datetime_m, 3) * 3
+        np_rounded_ns = rounded_month_numbers.astype("datetime64[M]").astype(
+            "datetime64[ns]"
+        )
+        # converting to int made nulls into ... not-null. Make them null again
+        np_rounded_ns[np.isnan(np_datetime_ns)] = "NaT"
+        return pa.array(np_rounded_ns)
+
+    if date_granularity == DateGranularity.WEEK:
+        # numpy "week" is counted from the Epoch -- which happens to be a
+        # Thursday. But ISO weeks start Monday, not Thursday -- and so Numpy's
+        # "W" type is useless.
+        #
+        # We do integer math: add 3 to each date and then floor-divide by 7.
+        # That makes "1970-01-01 [Thursday] + 3" => Sunday -- so when we
+        # floor-divide, everything from Monday to Sunday falls in the same
+        # bucket. We could group by this ... but we convert back to day and
+        # subtract the 3, so the group can be formatted.
+        np_datetime_ns = array.to_numpy(zero_copy_only=False)
+        np_datetime_d = np_datetime_ns.astype("datetime64[D]").astype(int)
+        rounded_day_numbers = np.floor_divide(np_datetime_d + 3, 7) * 7 - 3
+        np_rounded_ns = rounded_day_numbers.astype("datetime64[D]").astype(
+            "datetime64[ns]"
+        )
+        # converting to int made nulls into ... not-null. Make them null again
+        np_rounded_ns[np.isnan(np_datetime_ns)] = "NaT"
+        return pa.array(np_rounded_ns)
+
+    freq = date_granularity.numpy_unit
+    np_rounded_ns = (
+        array.to_numpy(zero_copy_only=False)
+        .astype(f"datetime64[{freq}]")
+        .astype("datetime64[ns]")
+    )
+    return pa.array(np_rounded_ns)
+
+
+def make_sorting_table(table: pa.Table, groups: List[Group]) -> pa.Table:
+    """Make the "sorting table": the table we'll sort to detect groups."""
+    assert table.columns, "zero-column input cannot use a sorting table"
+    assert table.columns[0].num_chunks == 1, "must combine_chunks() before sorting"
+
+    return pa.table(
+        {
+            group.colname: make_groupable_array(
+                table[group.colname].chunks[0], group.date_granularity
+            )
+            for group in groups
+        },
+        schema=pa.schema([table.schema.field(group.colname) for group in groups]),
+    )
+
+
+class SortedGroups(NamedTuple):
+    sorted_groups: pa.Table
+    """Groups: one row per group."""
+
+    sorted_input_table: pa.Table
+    """Input table, sorted according to groups.
+
+    Only "needed columns" will be included.
+    """
+
+    group_splits: np.array
+    """List of indices of "new groups".
+
+    For instance, if sorted_input_table has groups [0, 1, 2], [3] and [4, 5],
+    then `group_splits` will be [3, 4].`
+
+    This will be passed to numpy.split.
+    Ref: https://numpy.org/doc/stable/reference/generated/numpy.split.html
+    """
+
+
+def find_nonnull_table_mask(table: pa.Table) -> pa.Array:
+    mask = pa.array(np.ones(table.num_rows), pa.bool_())
+
+    for column in table.itercolumns():
+        mask = pa.compute.and_(mask, column.chunks[0].is_valid())
+
+    return mask
+
+
+def reencode_dictionary_array(array: pa.Array) -> pa.Array:
+    if len(array.indices) <= len(array.dictionary):
+        # Groupby often reduces the number of values considerably. Let's shy
+        # away from dictionary when it gives us literally nothing.
+        return array.cast(pa.utf8())
+
+    used = np.zeros(len(array.dictionary), np.bool_)
+    used[array.indices] = True
+    if np.all(used):
+        return array  # no edit
+
+    return array.cast(pa.utf8()).dictionary_encode()  # TODO optimize
+
+
+def reencode_dictionaries(table: pa.Table) -> pa.Table:
+    for i in range(table.num_columns):
+        column = table.columns[i]
+        if pa.types.is_dictionary(column.type):
+            table = table.set_column(
+                i, table.column_names[i], reencode_dictionary_array(column.chunks[0])
+            )
+    return table
+
+
+def make_sorted_groups(sorting_table: pa.Table, input_table: pa.Table) -> SortedGroups:
+    if not sorting_table.num_columns:
+        # Exactly one output group, even for empty-table input
+        return SortedGroups(
+            sorted_groups=pa.table({"A": [None]}).select([]),  # 1-row, 0-col table
+            sorted_input_table=input_table,  # everything is one group (maybe 0-row)
+            group_splits=np.array([], np.int64()),
+        )
+
+    # pyarrow 3.0.0 can't sort dictionary columns.
+    # TODO make sort-dictionary work; nix this conversion
+    sorting_table_without_dictionary = pa.table(
+        [
+            column.cast(pa.utf8()) if pa.types.is_dictionary(column.type) else column
+            for column in sorting_table.columns
+        ],
+        schema=pa.schema(
+            [
+                pa.field(field.name, pa.utf8())
+                if pa.types.is_dictionary(field.type)
+                else field
+                for field in [
+                    sorting_table.schema.field(i)
+                    for i in range(len(sorting_table.schema.names))
+                ]
+            ]
+        ),
+    )
+    indices = pa.compute.sort_indices(
+        sorting_table_without_dictionary,
+        sort_keys=[
+            (c, "ascending") for c in sorting_table_without_dictionary.column_names
+        ],
+    )
+
+    sorted_groups_with_dups_and_nulls = sorting_table.take(indices)
+    # Behavior we ought to DEPRECATE: to mimic Pandas, we drop all groups that
+    # contain NULL. This is mathematically sound for Pandas' "NA" (because if
+    # all these unknown things are the same thing, doesn't that mean we know
+    # something about them? -- reducto ad absurdum, QED). But Workbench's NULL
+    # is a bit closer to SQL NULL, which means "whatever you say, pal".
+    #
+    # This null-dropping is for backwards compat. TODO make it optional ... and
+    # eventually nix the option and always output NULL groups.
+    nonnull_indices = indices.filter(
+        find_nonnull_table_mask(sorted_groups_with_dups_and_nulls)
+    )
+
+    if input_table.num_columns:
+        sorted_input_table = input_table.take(nonnull_indices)
     else:
-        series = table[group.colname]
-        if group.date_granularity == DateGranularity.QUARTER:
-            # numpy has no "quarter" so we'll need to do something funky
-            month_numbers = series.values.astype("datetime64[M]").astype("int")
-            rounded_month_numbers = np.floor_divide(month_numbers, 3) * 3
-            values = rounded_month_numbers.astype("datetime64[M]")
-            values[np.isnat(series.values)] = np.datetime64("NaT")
-        elif group.date_granularity == DateGranularity.WEEK:
-            # numpy "week" is counted from the Epoch -- which happens to be
-            # a Thursday. But ISO weeks start Monday, not Thursday -- and so
-            # Numpy's "W" type is useless.
-            #
-            # We do integer math: add 3 to each date and then floor-divide by
-            # 7. That makes "1970-01-01 [Thursday] + 3" => Sunday -- so when
-            # we floor-divide, everything from Monday to Sunday falls in the
-            # same bucket. We could group by this ... but we convert back to
-            # day and subtract the 3, so the group can be formatted.
-            day_numbers = series.values.astype("datetime64[D]").astype("int")
-            rounded_day_numbers = np.floor_divide(day_numbers + 3, 7) * 7 - 3
-            values = rounded_day_numbers.astype("datetime64[D]")
-            values[np.isnat(series.values)] = np.datetime64("NaT")
-        else:
-            freq = group.date_granularity.numpy_unit
-            values = series.values.astype("datetime64[" + freq + "]")
-        return pd.Series(values, name=group.colname)
+        # Don't .take() on a zero-column Arrow table: its .num_rows would change
+        #
+        # All rows are identical, so .slice() gives the table we want
+        sorted_input_table = input_table.slice(0, len(nonnull_indices))
+
+    sorted_groups_with_dups = sorting_table.take(nonnull_indices)
+
+    # "is_dup": find each row in sorted_groups_with_dups that is _equal_ to
+    # the row before it. (The first value compares the first and second row.)
+    #
+    # We start assuming all are equal; then we search for inequality
+    if len(sorted_groups_with_dups):
+        is_dup = pa.array(np.ones(len(sorted_groups_with_dups) - 1), pa.bool_())
+        for column in sorted_groups_with_dups.itercolumns():
+            chunk = column.chunks[0]
+            if pa.types.is_dictionary(chunk.type):
+                chunk = chunk.indices
+            first = chunk.slice(0, len(column) - 1)
+            second = chunk.slice(1)
+            # TODO when we support NULL groups:
+            # both_null = pa.compute.and_(first.is_null(), second.is_null())
+            # both_equal_if_not_null = pa.compute.equal(first, second)
+            # both_equal = pa.compute.fill_null(both_equal_if_not_null, False)
+            # value_is_dup = pa.compute.or_(both_null, both_equal)
+            # ... and for now, it's simply:
+            value_is_dup = pa.compute.equal(first, second)
+            is_dup = pa.compute.and_(is_dup, value_is_dup)
+
+        group_splits = np.where(~(is_dup.to_numpy(zero_copy_only=False)))[0] + 1
+
+        sorted_groups = reencode_dictionaries(
+            sorted_groups_with_dups.take(np.insert(group_splits, 0, 0))
+        )
+    else:
+        sorted_groups = sorted_groups_with_dups
+        group_splits = np.array([], np.int64())
+
+    return SortedGroups(
+        sorted_groups=sorted_groups,
+        sorted_input_table=sorted_input_table,
+        group_splits=group_splits,
+    )
 
 
 def groupby(
-    table: pd.DataFrame, groups: List[Group], aggregations: List[Aggregation]
-) -> pd.DataFrame:
-    group_specs = [group_to_spec(group, table) for group in groups]
+    table: pa.Table, groups: List[Group], aggregations: List[Aggregation]
+) -> pa.Table:
+    simple_table = table.combine_chunks()
+    # Pick the "last" of each aggregation for each outname. There will only be
+    # one output column with each name.
+    aggregations: List[Aggregation] = list(
+        reversed({agg.outname: agg for agg in reversed(aggregations)}.values())
+    )
+    agg_outnames = frozenset((agg.outname for agg in aggregations))
+    needed_columns = frozenset((agg.colname for agg in aggregations if agg.colname))
+    sorting_table = make_sorting_table(simple_table, groups)
 
-    # Build agg_sets: {colname => {op1, op2}}. Don't worry about ordering.
-    # Use sets so we don't pass Pandas the same op twice.
-    agg_sets = {}
-    for aggregation in aggregations:
-        if aggregation.operation != Operation.SIZE:
-            op = aggregation.operation.value
-            colname = aggregation.colname
-            agg_sets.setdefault(colname, set()).add(op)
+    sorted_groups, sorted_input_table, group_splits = make_sorted_groups(
+        sorting_table, table.select(needed_columns)
+    )
 
-    # Got categoricals? Order the categories, so min/max work
-    category_colnames = {
-        agg.colname
-        for agg in aggregations
-        if agg.operation in {Operation.MIN, Operation.MAX}
-        and hasattr(table[agg.colname], "cat")
-    }
-    for colname in category_colnames:
-        table[colname].cat.as_ordered(inplace=True)
-        # Add dummy "size" to work around
-        # https://github.com/pandas-dev/pandas/issues/28641
-        agg_sets[colname].add("size")
-
-    if agg_sets:
-        # Pandas takes lists, not sets
-        agg_spec = {colname: list(ops) for colname, ops in agg_sets.items()}
-    else:
-        # We need to pass _something_ to agg(). Pass 'size', which is
-        # (hopefully) the least computationally-intense.
-        agg_spec = "size"
-
-    if group_specs:
-        # aggs: DataFrame indexed by group
-        # out: just the group colnames, no values yet (we'll add them later)
-        #
-        # Special case for categoricals: .groupby(observed=True) is needed,
-        # because .groupby(observed=False), the default, does something no user
-        # would expect. https://github.com/pandas-dev/pandas/pull/20583
-        grouped = table.groupby(group_specs, as_index=True, observed=True)
-        aggs = grouped.agg(agg_spec)
-        out = aggs.index.to_frame(index=False)
-        # out.rename(columns={i: g.colname for i, g in enumerate(groups)}, inplace=True)
-        # Remove unused categories (because `np.nan` deletes categories)
-        for column in out:
-            series = out[column]
-            if hasattr(series, "cat"):
-                series.cat.remove_unused_categories(inplace=True)
-    else:
-        # aggs: DataFrame with just one row
-        # out: one empty row, no columns yet
-        grouped = table
-        aggs = table.agg(agg_spec)
-        out = pd.DataFrame(columns=[], index=[0])
-
-    # Now copy values from `aggs` into `out`. (They have the same index.)
-    for aggregation in aggregations:
-        op = aggregation.operation.value
-        outname = aggregation.outname
-        colname = aggregation.colname
-
-        if not outname:
-            outname = aggregation.operation.default_outname(aggregation.colname)
-
-        if aggregation.operation == Operation.SIZE:
-            if group_specs:
-                out[outname] = grouped.size().values
+    retval = sorted_groups.select(
+        (
+            colname
+            for colname in sorted_groups.column_names
+            if colname not in agg_outnames
+        )
+    )
+    for agg in aggregations:
+        if len(retval) == 0:
+            if agg.operation in {Operation.SIZE, Operation.NUNIQUE}:
+                field = pa.field(agg.outname, pa.int64(), metadata={"format": "{:,d}"})
+            elif agg.operation in {Operation.MEAN, Operation.MEDIAN}:
+                field = pa.field(agg.outname, pa.float64(), metadata={"format": "{:,}"})
             else:
-                out[outname] = len(table)
+                input_field = sorted_input_table.schema.field(agg.colname)
+                field = pa.field(
+                    agg.outname, input_field.type, metadata=input_field.metadata
+                )
+            retval = retval.append_column(field, pa.array([], field.type))
         else:
-            series = aggs[colname][op]
-            # Depending on op, pandas may return a series-like or an array.
-            try:
-                out[outname] = series.values
-            except AttributeError:
-                out[outname] = series
+            if agg.operation == Operation.SIZE:
+                array = size(
+                    num_rows=sorted_input_table.num_rows, group_splits=group_splits
+                )
+                field = pa.field(agg.outname, array.type, metadata={"format": "{:,d}"})
+            elif agg.operation == Operation.NUNIQUE:
+                array = nunique(
+                    array=sorted_input_table[agg.colname].chunks[0],
+                    group_splits=group_splits,
+                )
+                field = pa.field(agg.outname, array.type, metadata={"format": "{:,d}"})
+            else:
+                ufunc = dict(
+                    sum=sum,
+                    first=first,
+                    mean=mean,
+                    median=median,
+                    min=min,
+                    max=max,
+                    nunique=nunique,
+                )[agg.operation.value]
+                array = sorted_input_table[agg.colname].chunks[0]
+                if pa.types.is_dictionary(sorted_input_table[agg.colname].type):
+                    array = array.cast(pa.utf8())
+                array = ufunc(
+                    array=array,
+                    group_splits=group_splits,
+                )
+                if pa.types.is_dictionary(sorted_input_table[agg.colname].type):
+                    array = array.cast(pa.utf8()).dictionary_encode()
+                input_field = sorted_input_table.schema.field(agg.colname)
+                if (
+                    agg.operation
+                    in {
+                        Operation.MEAN,
+                        Operation.MEDIAN,
+                    }
+                    and not pa.types.is_floating(input_field.type)
+                ):
+                    metadata = {"format": "{:,}"}  # float default
+                else:
+                    metadata = input_field.metadata
+                field = pa.field(agg.outname, array.type, metadata=metadata)
+            retval = retval.append_column(field, array)
 
-    # Remember those category colnames we converted to ordered? Now we need to
-    # undo that (and remove newly-unused categories).
-    for colname in list(out.columns):
-        column = out[colname]
-        if hasattr(column, "cat") and column.cat.ordered:
-            column.cat.remove_unused_categories(inplace=True)
-            column.cat.as_unordered(inplace=True)
-
-    return out
+    return retval
 
 
-def render(table, params):
-    colnames = table.columns
-    date_colnames = set(
-        colname for colname in colnames if hasattr(table[colname], "dt")
+def render_arrow_v1(
+    table: pa.Table, params: Dict[str, Any], **kwargs
+) -> ArrowRenderResult:
+    colnames = table.column_names
+    date_colnames = frozenset(
+        colname for colname in colnames if pa.types.is_timestamp(table[colname].type)
     )
     groups = parse_groups(date_colnames=date_colnames, **params["groups"])
     aggregations = parse_aggregations(params["aggregations"])
 
     # HACK: set the same default aggregations as we do in our JavaScript component.
     if not aggregations:
-        aggregations.append(Aggregation(Operation.SIZE, "", ""))
+        aggregations.append(
+            Aggregation(Operation.SIZE, "", Operation.SIZE.default_outname(""))
+        )
 
     # This is a "Group By" module so we need to support the obvious operation,
     # 'SELECT COUNT(*) FROM input'. The obvious way to display that is to select
@@ -418,39 +679,52 @@ def render(table, params):
     # should change to be complete+simple (because the onboarding will have
     # another answer). That's
     # https://www.pivotaltracker.com/story/show/164375318
-    if not groups and aggregations == [Aggregation(Operation.SIZE, "", "")]:
-        return table  # no-op, for users who haven't entered any params
+    if not groups and aggregations == [
+        Aggregation(Operation.SIZE, "", Operation.SIZE.default_outname(""))
+    ]:
+        return ArrowRenderResult(table)  # no-op: users haven't entered any params
 
-    # Error out with a quickfix if aggregations need int and we're not int
+    # Error out with a quickfix if aggregations need number and we're not number
     non_numeric_colnames = []
     for aggregation in aggregations:
         if aggregation.operation.needs_numeric_column():
             colname = aggregation.colname
-            series = table[colname]
-            if not is_numeric_dtype(series) and colname not in non_numeric_colnames:
+            column = table[colname]
+            if (
+                not pa.types.is_integer(column.type)
+                and not pa.types.is_floating(column.type)
+            ) and colname not in non_numeric_colnames:
                 non_numeric_colnames.append(colname)
     if non_numeric_colnames:
-        return {
-            "error": i18n.trans(
-                "non_numeric_colnames.error",
-                "{n_columns, plural,"
-                ' one {Column "{first_colname}"}'
-                ' other {# columns (see "{first_colname}")}} '
-                "must be Numbers",
-                {
-                    "n_columns": len(non_numeric_colnames),
-                    "first_colname": non_numeric_colnames[0],
-                },
-            ),
-            "quick_fixes": [
-                {
-                    "text": i18n.trans(
-                        "non_numeric_colnames.quick_fix.text", "Convert"
+        return ArrowRenderResult(
+            pa.table({}),
+            errors=[
+                RenderError(
+                    i18n.trans(
+                        "non_numeric_colnames.error",
+                        "{n_columns, plural,"
+                        ' one {Column "{first_colname}"}'
+                        ' other {# columns (see "{first_colname}")}} '
+                        "must be Numbers",
+                        {
+                            "n_columns": len(non_numeric_colnames),
+                            "first_colname": non_numeric_colnames[0],
+                        },
                     ),
-                    "action": "prependModule",
-                    "args": ["converttexttonumber", {"colnames": non_numeric_colnames}],
-                }
+                    quick_fixes=[
+                        QuickFix(
+                            i18n.trans(
+                                "non_numeric_colnames.quick_fix.text", "Convert"
+                            ),
+                            action=QuickFixAction.PrependStep(
+                                "converttexttonumber",
+                                {"colnames": non_numeric_colnames},
+                            ),
+                        )
+                    ],
+                )
             ],
-        }
+        )
 
-    return groupby(table, groups, aggregations)
+    result_table = groupby(table, groups, aggregations)
+    return ArrowRenderResult(result_table)

@@ -7,12 +7,12 @@ msgid "_spec.description"
 msgstr ""
 
 #. default-message: {n_columns, plural, one {Column "{first_colname}"} other {# columns (see "{first_colname}")}} must be Numbers
-#: groupby.py:433
+#: groupby.py:710
 msgid "non_numeric_colnames.error"
 msgstr ""
 
 #. default-message: Convert
-#: groupby.py:439
+#: groupby.py:716
 msgid "non_numeric_colnames.quick_fix.text"
 msgstr ""
 
