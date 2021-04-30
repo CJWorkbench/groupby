@@ -230,7 +230,6 @@ def first(*, array: pa.Array, group_splits: np.array, **kwargs) -> pa.Array:
 def build_ufunc_wrapper(
     np_func: Callable[[Any], np.array], force_otype=None
 ) -> Callable[..., pa.Array]:
-    # @numba.njit
     def call_ufunc(values: np.array, group_splits: np.array, otype, zero) -> np.array:
         starts = np.append([0], group_splits)
         ends = np.append(group_splits, len(values))

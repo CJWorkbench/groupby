@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-04-30 18:23+0000\n"
+"POT-Creation-Date: 2021-04-30 18:56+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: el\n"
@@ -28,14 +28,14 @@ msgstr ""
 " Υπολογίστε άθροισμα, μέσους όρους, ελάχιστο, μέγιστο και άλλα για κάθε "
 "ομάδα."
 
-#: groupby.py:710
+#: groupby.py:709
 msgid "non_numeric_colnames.error"
 msgstr ""
 "{n_columns, plural, one {Η στήλη \"{first_colname}\" πρέπει να περιέχει} "
 "other {# στήλες (δείτε \"{first_colname}\") πρέπει να περιέχουν}} "
 "αριθμούς"
 
-#: groupby.py:716
+#: groupby.py:715
 msgid "non_numeric_colnames.quick_fix.text"
 msgstr "Μετατροπή"
 

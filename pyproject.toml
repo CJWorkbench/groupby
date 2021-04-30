@@ -12,7 +12,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 cjwmodule = "~=4.1"
-numba = "~=0.53.1"
 python = "~=3.8.0"
 
 [tool.poetry.dev-dependencies]
