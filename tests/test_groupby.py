@@ -1,8 +1,8 @@
 from datetime import datetime as dt
 
 import pyarrow as pa
-from cjwmodule.arrow.testing import assert_arrow_table_equals, make_column, make_table
-
+from cjwmodule.arrow.testing import (assert_arrow_table_equals, make_column,
+                                     make_table)
 from groupby import Aggregation, DateGranularity, Group, Operation, groupby
 
 
@@ -166,6 +166,76 @@ def test_aggregate_numbers():
             make_column("min", [2, 1], format="{:d}"),  # format from B
             make_column("max", [2, 5], format="{:d}"),  # format from B
             make_column("first", [2, 1], format="{:d}"),  # format from B
+        ),
+    )
+
+
+def test_aggregate_numbers_all_nulls():
+    assert_arrow_table_equals(
+        groupby(
+            make_table(
+                make_column("A", [1], format="{:.2f}"),
+                make_column("B", [None], pa.int32(), format="{:d}"),
+            ),
+            [Group("A", None)],
+            [
+                Aggregation(Operation.SIZE, "", "size"),
+                Aggregation(Operation.NUNIQUE, "B", "nunique"),
+                Aggregation(Operation.SUM, "B", "sum"),
+                Aggregation(Operation.MEAN, "B", "mean"),
+                Aggregation(Operation.MEDIAN, "B", "median"),
+                Aggregation(Operation.MIN, "B", "min"),
+                Aggregation(Operation.MAX, "B", "max"),
+                Aggregation(Operation.FIRST, "B", "first"),
+            ],
+        ),
+        make_table(
+            make_column("A", [1], format="{:.2f}"),  # format from A
+            make_column("size", [1], pa.int64(), format="{:,d}"),  # int format
+            make_column("nunique", [0], pa.int64(), format="{:,d}"),  # int format
+            # TODO make "sum" int64
+            make_column("sum", [None], pa.int32(), format="{:d}"),  # format from B
+            make_column("mean", [None], pa.float64(), format="{:,}"),  # default format
+            make_column(
+                "median", [None], pa.float64(), format="{:,}"
+            ),  # default format
+            make_column("min", [None], pa.int32(), format="{:d}"),  # format from B
+            make_column("max", [None], pa.int32(), format="{:d}"),  # format from B
+            make_column("first", [None], pa.int32(), format="{:d}"),  # format from B
+        ),
+    )
+
+
+def test_aggregate_numbers_no_groups():
+    assert_arrow_table_equals(
+        groupby(
+            make_table(
+                make_column("A", [], pa.int16(), format="{:.2f}"),
+                make_column("B", [], pa.int32(), format="{:d}"),
+            ),
+            [Group("A", None)],
+            [
+                Aggregation(Operation.SIZE, "", "size"),
+                Aggregation(Operation.NUNIQUE, "B", "nunique"),
+                Aggregation(Operation.SUM, "B", "sum"),
+                Aggregation(Operation.MEAN, "B", "mean"),
+                Aggregation(Operation.MEDIAN, "B", "median"),
+                Aggregation(Operation.MIN, "B", "min"),
+                Aggregation(Operation.MAX, "B", "max"),
+                Aggregation(Operation.FIRST, "B", "first"),
+            ],
+        ),
+        make_table(
+            make_column("A", [], pa.int16(), format="{:.2f}"),  # format from A
+            make_column("size", [], pa.int64(), format="{:,d}"),  # int format
+            make_column("nunique", [], pa.int64(), format="{:,d}"),  # int format
+            # TODO make "sum" int64
+            make_column("sum", [], pa.int32(), format="{:d}"),  # format from B
+            make_column("mean", [], pa.float64(), format="{:,}"),  # default format
+            make_column("median", [], pa.float64(), format="{:,}"),  # default format
+            make_column("min", [], pa.int32(), format="{:d}"),  # format from B
+            make_column("max", [], pa.int32(), format="{:d}"),  # format from B
+            make_column("first", [], pa.int32(), format="{:d}"),  # format from B
         ),
     )
 
@@ -502,5 +572,19 @@ def test_aggregate_timestamp_by_year_DEPRECATED():
         make_table(
             make_column("A", [dt(2018, 1, 1), dt(2019, 1, 1)]),
             make_column("size", [2, 1], format="{:,d}"),
+        ),
+    )
+
+
+def test_zero_chunks():
+    assert_arrow_table_equals(
+        groupby(
+            pa.table({"A": pa.chunked_array([], pa.utf8())}),
+            [Group("A", None)],
+            [Aggregation(Operation.SIZE, "", "size")],
+        ),
+        make_table(
+            make_column("A", [], pa.utf8()),
+            make_column("size", [], pa.int64(), format="{:,d}"),
         ),
     )

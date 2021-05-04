@@ -559,10 +559,30 @@ def make_sorted_groups(sorting_table: pa.Table, input_table: pa.Table) -> Sorted
     )
 
 
+def make_table_one_chunk(table: pa.Table) -> pa.Table:
+    assert len(table.columns), "Workbench must not give a zero-column table"
+
+    if table.columns[0].num_chunks == 0:
+        return pa.table(
+            {
+                field.name: pa.array([], field.type)
+                for field in (
+                    table.schema.field(i) for i in range(len(table.schema.names))
+                )
+            },
+            schema=table.schema,
+        )
+
+    if table.columns[0].num_chunks == 1:
+        return table
+
+    return table.combine_chunks()
+
+
 def groupby(
     table: pa.Table, groups: List[Group], aggregations: List[Aggregation]
 ) -> pa.Table:
-    simple_table = table.combine_chunks()
+    simple_table = make_table_one_chunk(table)
     # Pick the "last" of each aggregation for each outname. There will only be
     # one output column with each name.
     aggregations: List[Aggregation] = list(
