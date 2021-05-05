@@ -127,7 +127,7 @@ def _migrate_params_v1_to_v2(params):
             operation = ["size", "nunique", "sum", "mean", "min", "max"][
                 operation_number
             ]
-        except (TypeError, IndexError):
+        except (TypeError, IndexError):  # pragma: no cover
             # Fold away non-sane aggregations
             continue
 
@@ -183,6 +183,24 @@ class DateGranularity(Enum):
             self.DAY: "D",
             self.MONTH: "M",
             self.YEAR: "Y",
+        }[self]
+
+    @property
+    def date_unit(self):
+        return {
+            self.DAY: "day",
+            self.WEEK: "week",
+            self.MONTH: "month",
+            self.QUARTER: "quarter",
+            self.YEAR: "year",
+        }[self]
+
+    @property
+    def rounding_unit(self):
+        return {
+            self.HOUR: "hour",
+            self.MINUTE: "minute",
+            self.SECOND: "second",
         }[self]
 
 
@@ -664,6 +682,182 @@ def groupby(
     return retval
 
 
+def _timestamp_is_rounded(
+    column: pa.ChunkedArray, granularity: DateGranularity
+) -> bool:
+    factor = {
+        DateGranularity.SECOND: 1_000_000_000,
+        DateGranularity.MINUTE: 1_000_000_000 * 60,
+        DateGranularity.HOUR: 1_000_000_000 * 60 * 60,
+    }[granularity]
+    ints = column.cast(pa.int64())
+    return pa.compute.all(
+        pa.compute.equal(
+            ints, pa.compute.multiply(pa.compute.divide(ints, factor), factor)
+        )
+    ).as_py()
+
+
+def _warn_if_using_deprecated_date_granularity(
+    table: pa.Table, groups: List[Group]
+) -> List[RenderError]:
+    errors = []
+
+    deprecated_need_upgrade_to_date: List[Group] = []
+    deprecated_need_timestampmath: List[Group] = []
+    for group in groups:
+        if group.date_granularity is not None and pa.types.is_timestamp(
+            table.schema.field(group.colname).type
+        ):
+            if group.date_granularity in {
+                DateGranularity.DAY,
+                DateGranularity.WEEK,
+                DateGranularity.MONTH,
+                DateGranularity.QUARTER,
+                DateGranularity.YEAR,
+            }:
+                deprecated_need_upgrade_to_date.append(group)
+            elif not _timestamp_is_rounded(
+                table[group.colname], group.date_granularity
+            ):
+                deprecated_need_timestampmath.append(group)
+
+    if deprecated_need_upgrade_to_date:
+        errors.append(
+            RenderError(
+                i18n.trans(
+                    "group_dates.granularity_deprecated.need_dates",
+                    "The “Group Dates” feature has changed. Please click to upgrade from Timestamps to Dates. Workbench will force-upgrade in January 2022.",
+                ),
+                quick_fixes=[
+                    QuickFix(
+                        i18n.trans(
+                            "group_dates.granularity_deprecated.quick_fix.convert_to_date",
+                            "Upgrade",
+                        ),
+                        QuickFixAction.PrependStep(
+                            "converttimestamptodate",
+                            dict(
+                                colnames=[group.colname],
+                                unit=group.date_granularity.date_unit,
+                            ),
+                        ),
+                    )
+                    for group in deprecated_need_upgrade_to_date
+                ],
+            )
+        )
+
+    if deprecated_need_timestampmath:
+        errors.append(
+            RenderError(
+                i18n.trans(
+                    "group_dates.granularity_deprecated.need_rounding",
+                    "The “Group Dates” feature has changed. Please click to upgrade to Timestamp Math. Workbench will force-upgrade in January 2022.",
+                ),
+                quick_fixes=[
+                    QuickFix(
+                        i18n.trans(
+                            "group_dates.granularity_deprecated.quick_fix.round_timestamps",
+                            "Upgrade",
+                        ),
+                        QuickFixAction.PrependStep(
+                            "timestampmath",
+                            dict(
+                                colnames=[group.colname],
+                                operation="startof",
+                                roundunit=group.date_granularity.rounding_unit,
+                            ),
+                        ),
+                    )
+                    for group in deprecated_need_timestampmath
+                ],
+            )
+        )
+
+    return errors
+
+
+def _warn_to_suggest_convert_to_date(
+    schema: pa.Schema, colnames: FrozenSet[str]
+) -> List[RenderError]:
+    fields = [field for field in schema if field.name in colnames]
+
+    # No warnings if the user is already grouping by date
+    if any((pa.types.is_date32(field.type) for field in fields)):
+        return []
+
+    # No warnings if the user did not select a column
+    if not fields:
+        return []
+
+    errors = []
+
+    timestamp_colnames = []
+    text_colnames = []
+    for field in fields:
+        if pa.types.is_timestamp(field.type):
+            timestamp_colnames.append(field.name)
+        elif pa.types.is_string(field.type) or pa.types.is_dictionary(field.type):
+            text_colnames.append(field.name)
+
+    if timestamp_colnames:
+        errors.append(
+            RenderError(
+                i18n.trans(
+                    "group_dates.timestamp_selected",
+                    "{columns, plural, offset:1 =1 {“{column0}” is Text.}=2 {“{column0}” and one other column are Text.}other {“{column0}” and # other columns are Text.}}",
+                    dict(
+                        columns=len(timestamp_colnames), column0=timestamp_colnames[0]
+                    ),
+                ),
+                [
+                    QuickFix(
+                        i18n.trans(
+                            "group_dates.quick_fix.convert_timestamp_to_date",
+                            "Convert to Date",
+                        ),
+                        QuickFixAction.PrependStep(
+                            "converttimestamptodate", dict(colnames=timestamp_colnames)
+                        ),
+                    )
+                ],
+            )
+        )
+    elif text_colnames:
+        errors.append(
+            RenderError(
+                i18n.trans(
+                    "group_dates.text_selected",
+                    "{columns, plural, offset:1 =1 {“{column0}” is Text.}=2 {“{column0}” and one other column are Text.}other {“{column0}” and # other columns are Text.}}",
+                    dict(columns=len(text_colnames), column0=text_colnames[0]),
+                ),
+                [
+                    QuickFix(
+                        i18n.trans(
+                            "group_dates.quick_fix.convert_text_to_date",
+                            "Convert to Date",
+                        ),
+                        QuickFixAction.PrependStep(
+                            "converttexttodate", dict(colnames=text_colnames)
+                        ),
+                    )
+                ],
+            )
+        )
+    else:
+        errors.append(
+            RenderError(
+                i18n.trans(
+                    "group_dates.select_date_columns",
+                    "Select a Date column, or uncheck “Group Dates”.",
+                )
+            )
+        )
+
+    return errors
+
+
 def render_arrow_v1(
     table: pa.Table, params: Dict[str, Any], **kwargs
 ) -> ArrowRenderResult:
@@ -745,5 +939,11 @@ def render_arrow_v1(
             ],
         )
 
+    errors = _warn_if_using_deprecated_date_granularity(table, groups)
+    if not errors and params["groups"]["group_dates"]:
+        errors = _warn_to_suggest_convert_to_date(
+            table.schema, frozenset(group.colname for group in groups)
+        )
+
     result_table = groupby(table, groups, aggregations)
-    return ArrowRenderResult(result_table)
+    return ArrowRenderResult(result_table, errors=errors)

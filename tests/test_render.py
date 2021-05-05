@@ -1,4 +1,4 @@
-from datetime import datetime as dt
+import datetime
 from pathlib import Path
 
 from cjwmodule.arrow.testing import assert_result_equals, make_column, make_table
@@ -134,6 +134,27 @@ def test_quickfix_convert_value_strings_to_numbers():
     )
 
 
+def test_ignore_aggregation_with_empty_colname():
+    # Workbench replaces non-existent column names with "". So we can end up
+    # running groupby with aggregations that have no column.
+    #
+    # These appear in the UI, so users can select new columns. But we won't
+    # render them.
+    assert_result_equals(
+        render(
+            make_table(make_column("A", [1])),
+            P(
+                groups=dict(colnames=[], group_dates=False, date_granularities={}),
+                aggregations=[
+                    dict(operation="size", colname="", outname="size"),
+                    dict(operation="sum", colname="", outname="sum"),
+                ],
+            ),
+        ),
+        ArrowRenderResult(make_table(make_column("size", [1], format="{:,d}"))),
+    )
+
+
 def test_ignore_non_date_timestamps():
     # Steps for the user to get here:
     # 1. Make a date column, 'A'
@@ -146,7 +167,9 @@ def test_ignore_non_date_timestamps():
         render(
             make_table(
                 make_column("A", [1]),  # "used to be a datetime"
-                make_column("B", [dt(2019, 1, 4)]),  # so we don't need quickfix
+                make_column(
+                    "B", [datetime.datetime(2019, 1, 4)]
+                ),  # so we don't need quickfix
             ),
             P(
                 groups=dict(
@@ -156,6 +179,210 @@ def test_ignore_non_date_timestamps():
             ),
         ),
         ArrowRenderResult(
-            make_table(make_column("A", [1]), make_column("size", [1], format="{:,d}"))
+            make_table(make_column("A", [1]), make_column("size", [1], format="{:,d}")),
+            [RenderError(i18n_message("group_dates.select_date_columns"))],
+        ),
+    )
+
+
+def test_group_dates_prompt_select_date_column():
+    assert_result_equals(
+        render(
+            make_table(make_column("A", [1])),
+            P(
+                groups=dict(colnames=["A"], group_dates=True, date_granularities={}),
+                aggregations=[dict(operation="size", colname="", outname="size")],
+            ),
+        ),
+        ArrowRenderResult(
+            make_table(make_column("A", [1]), make_column("size", [1], format="{:,d}")),
+            errors=[RenderError(i18n_message("group_dates.select_date_columns"))],
+        ),
+    )
+
+
+def test_group_date_no_errors_when_nothing_selected():
+    assert_result_equals(
+        render(
+            make_table(make_column("A", [1])),
+            P(
+                groups=dict(colnames=[], group_dates=True, date_granularities={}),
+                aggregations=[dict(operation="sum", colname="A", outname="sum")],
+            ),
+        ),
+        ArrowRenderResult(make_table(make_column("sum", [1]))),
+    )
+
+
+def test_group_date_no_errors_when_date_selected():
+    assert_result_equals(
+        render(
+            make_table(
+                make_column("A", [datetime.date(2021, 5, 5)], unit="day"),
+                make_column("B", [1]),
+            ),
+            P(
+                groups=dict(
+                    colnames=["A", "B"], group_dates=True, date_granularities={}
+                ),
+                aggregations=[dict(operation="size", colname="", outname="size")],
+            ),
+        ),
+        ArrowRenderResult(
+            make_table(
+                make_column("A", [datetime.date(2021, 5, 5)], unit="day"),
+                make_column("B", [1]),
+                make_column("size", [1], format="{:,d}"),
+            ),
+        ),
+    )
+
+
+def test_group_date_prompt_convert_timestamp_to_date():
+    assert_result_equals(
+        render(
+            make_table(make_column("A", [datetime.datetime(2021, 5, 5)])),
+            P(
+                groups=dict(colnames=["A"], group_dates=True, date_granularities={}),
+                aggregations=[dict(operation="size", colname="", outname="size")],
+            ),
+        ),
+        ArrowRenderResult(
+            make_table(
+                make_column("A", [datetime.datetime(2021, 5, 5)]),
+                make_column("size", [1], format="{:,d}"),
+            ),
+            [
+                RenderError(
+                    i18n_message(
+                        "group_dates.timestamp_selected", dict(columns=1, column0="A")
+                    ),
+                    [
+                        QuickFix(
+                            i18n_message(
+                                "group_dates.quick_fix.convert_timestamp_to_date"
+                            ),
+                            QuickFixAction.PrependStep(
+                                "converttimestamptodate", dict(colnames=["A"])
+                            ),
+                        )
+                    ],
+                )
+            ],
+        ),
+    )
+
+
+def test_group_date_prompt_convert_text_to_date():
+    assert_result_equals(
+        render(
+            make_table(
+                make_column("A", ["2021-05-05"]),
+                make_column("B", ["2021-05-05"]),
+            ),
+            P(
+                groups=dict(
+                    colnames=["A", "B"], group_dates=True, date_granularities={}
+                ),
+                aggregations=[dict(operation="size", colname="", outname="size")],
+            ),
+        ),
+        ArrowRenderResult(
+            make_table(
+                make_column("A", ["2021-05-05"]),
+                make_column("B", ["2021-05-05"]),
+                make_column("size", [1], format="{:,d}"),
+            ),
+            [
+                RenderError(
+                    i18n_message(
+                        "group_dates.text_selected", dict(columns=2, column0="A")
+                    ),
+                    [
+                        QuickFix(
+                            i18n_message("group_dates.quick_fix.convert_text_to_date"),
+                            QuickFixAction.PrependStep(
+                                "converttexttodate", dict(colnames=["A", "B"])
+                            ),
+                        )
+                    ],
+                )
+            ],
+        ),
+    )
+
+
+def test_group_date_prompt_upgrade_timestamp_to_date():
+    assert_result_equals(
+        render(
+            make_table(make_column("A", [datetime.datetime(2021, 5, 5)])),
+            P(
+                groups=dict(
+                    colnames=["A"], group_dates=True, date_granularities={"A": "Y"}
+                ),
+                aggregations=[dict(operation="size", colname="", outname="size")],
+            ),
+        ),
+        ArrowRenderResult(
+            make_table(
+                make_column("A", [datetime.datetime(2021, 1, 1)]),
+                make_column("size", [1], format="{:,d}"),
+            ),
+            [
+                RenderError(
+                    i18n_message("group_dates.granularity_deprecated.need_dates"),
+                    [
+                        QuickFix(
+                            i18n_message(
+                                "group_dates.granularity_deprecated.quick_fix.convert_to_date"
+                            ),
+                            QuickFixAction.PrependStep(
+                                "converttimestamptodate",
+                                dict(colnames=["A"], unit="year"),
+                            ),
+                        )
+                    ],
+                )
+            ],
+        ),
+    )
+
+
+def test_group_date_prompt_upgrade_timestampmath():
+    assert_result_equals(
+        render(
+            make_table(make_column("A", [datetime.datetime(2021, 5, 5, 1, 2, 3, 4)])),
+            P(
+                groups=dict(
+                    colnames=["A"], group_dates=True, date_granularities={"A": "S"}
+                ),
+                aggregations=[dict(operation="size", colname="", outname="size")],
+            ),
+        ),
+        ArrowRenderResult(
+            make_table(
+                make_column("A", [datetime.datetime(2021, 5, 5, 1, 2, 3)]),
+                make_column("size", [1], format="{:,d}"),
+            ),
+            [
+                RenderError(
+                    i18n_message("group_dates.granularity_deprecated.need_rounding"),
+                    [
+                        QuickFix(
+                            i18n_message(
+                                "group_dates.granularity_deprecated.quick_fix.round_timestamps"
+                            ),
+                            QuickFixAction.PrependStep(
+                                "timestampmath",
+                                dict(
+                                    colnames=["A"],
+                                    operation="startof",
+                                    roundunit="second",
+                                ),
+                            ),
+                        )
+                    ],
+                )
+            ],
         ),
     )

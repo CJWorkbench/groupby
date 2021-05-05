@@ -1,8 +1,8 @@
 from datetime import datetime as dt
 
 import pyarrow as pa
-from cjwmodule.arrow.testing import (assert_arrow_table_equals, make_column,
-                                     make_table)
+from cjwmodule.arrow.testing import assert_arrow_table_equals, make_column, make_table
+
 from groupby import Aggregation, DateGranularity, Group, Operation, groupby
 
 

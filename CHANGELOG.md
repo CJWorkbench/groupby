@@ -1,3 +1,12 @@
+2021-05-05
+----------
+
+* Make "Group Dates" checkbox suggest quick fixes.
+
+Up to now, Workbench has been making the "Group Dates" checkbox a special
+case. It would suggest quick fixes _before the user clicked Go_. Now, the
+quick-fix button behaves like any other quick fix.
+
 2021-04-30
 ----------
 
