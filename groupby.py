@@ -806,7 +806,7 @@ def _warn_to_suggest_convert_to_date(
             RenderError(
                 i18n.trans(
                     "group_dates.timestamp_selected",
-                    "{columns, plural, offset:1 =1 {“{column0}” is Text.}=2 {“{column0}” and one other column are Text.}other {“{column0}” and # other columns are Text.}}",
+                    "{columns, plural, offset:1 =1 {“{column0}” is Timestamp.}=2 {“{column0}” and one other column are Timestamp.}other {“{column0}” and # other columns are Timestamp.}}",
                     dict(
                         columns=len(timestamp_colnames), column0=timestamp_colnames[0]
                     ),
@@ -841,7 +841,16 @@ def _warn_to_suggest_convert_to_date(
                         QuickFixAction.PrependStep(
                             "converttexttodate", dict(colnames=text_colnames)
                         ),
-                    )
+                    ),
+                    QuickFix(
+                        i18n.trans(
+                            "group_dates.quick_fix.convert_text_to_timestamp",
+                            "Convert to Timestamp first",
+                        ),
+                        QuickFixAction.PrependStep(
+                            "convert-date", dict(colnames=text_colnames)
+                        ),
+                    ),
                 ],
             )
         )

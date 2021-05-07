@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-05-05 20:26+0000\n"
+"POT-Creation-Date: 2021-05-07 19:07+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: el\n"
@@ -60,18 +60,22 @@ msgstr ""
 msgid "group_dates.quick_fix.convert_text_to_date"
 msgstr ""
 
-#: groupby.py:851
+#: groupby.py:846
+msgid "group_dates.quick_fix.convert_text_to_timestamp"
+msgstr ""
+
+#: groupby.py:860
 msgid "group_dates.select_date_columns"
 msgstr ""
 
-#: groupby.py:923
+#: groupby.py:932
 msgid "non_numeric_colnames.error"
 msgstr ""
 "{n_columns, plural, one {Η στήλη \"{first_colname}\" πρέπει να περιέχει} "
 "other {# στήλες (δείτε \"{first_colname}\") πρέπει να περιέχουν}} "
 "αριθμούς"
 
-#: groupby.py:929
+#: groupby.py:938
 msgid "non_numeric_colnames.quick_fix.text"
 msgstr "Μετατροπή"
 

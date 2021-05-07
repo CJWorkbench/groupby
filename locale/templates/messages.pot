@@ -26,7 +26,7 @@ msgstr ""
 msgid "group_dates.granularity_deprecated.quick_fix.round_timestamps"
 msgstr ""
 
-#. default-message: {columns, plural, offset:1 =1 {“{column0}” is Text.}=2 {“{column0}” and one other column are Text.}other {“{column0}” and # other columns are Text.}}
+#. default-message: {columns, plural, offset:1 =1 {“{column0}” is Timestamp.}=2 {“{column0}” and one other column are Timestamp.}other {“{column0}” and # other columns are Timestamp.}}
 #: groupby.py:811
 msgid "group_dates.timestamp_selected"
 msgstr ""
@@ -46,18 +46,23 @@ msgstr ""
 msgid "group_dates.quick_fix.convert_text_to_date"
 msgstr ""
 
+#. default-message: Convert to Timestamp first
+#: groupby.py:846
+msgid "group_dates.quick_fix.convert_text_to_timestamp"
+msgstr ""
+
 #. default-message: Select a Date column, or uncheck “Group Dates”.
-#: groupby.py:851
+#: groupby.py:860
 msgid "group_dates.select_date_columns"
 msgstr ""
 
 #. default-message: {n_columns, plural, one {Column "{first_colname}"} other {# columns (see "{first_colname}")}} must be Numbers
-#: groupby.py:923
+#: groupby.py:932
 msgid "non_numeric_colnames.error"
 msgstr ""
 
 #. default-message: Convert
-#: groupby.py:929
+#: groupby.py:938
 msgid "non_numeric_colnames.quick_fix.text"
 msgstr ""
 

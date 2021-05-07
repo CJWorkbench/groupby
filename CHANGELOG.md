@@ -1,3 +1,10 @@
+2021-05-07
+----------
+
+* Make "Group Dates" suggest text=>timestamp quick fix. (This means two
+  quick fixes -- text=>timestamp + timestamp=>date -- to complete one
+  task. We hope users will be able to follow the logic.)
+
 2021-05-05
 ----------
 
