@@ -201,7 +201,7 @@ def test_group_dates_prompt_select_date_column():
     )
 
 
-def test_group_date_no_errors_when_nothing_selected():
+def test_group_date_prompt_when_nothing_selected():
     assert_result_equals(
         render(
             make_table(make_column("A", [1])),
@@ -210,15 +210,18 @@ def test_group_date_no_errors_when_nothing_selected():
                 aggregations=[dict(operation="sum", colname="A", outname="sum")],
             ),
         ),
-        ArrowRenderResult(make_table(make_column("sum", [1]))),
+        ArrowRenderResult(
+            make_table(make_column("sum", [1])),
+            [RenderError(i18n_message("group_dates.select_date_columns"))],
+        ),
     )
 
 
-def test_group_date_no_errors_when_date_selected():
+def test_group_date_prompt_all_is_well_when_date_column_present():
     assert_result_equals(
         render(
             make_table(
-                make_column("A", [datetime.date(2021, 5, 5)], unit="day"),
+                make_column("A", [datetime.date(2021, 5, 10)], unit="week"),
                 make_column("B", [1]),
             ),
             P(
@@ -230,10 +233,18 @@ def test_group_date_no_errors_when_date_selected():
         ),
         ArrowRenderResult(
             make_table(
-                make_column("A", [datetime.date(2021, 5, 5)], unit="day"),
+                make_column("A", [datetime.date(2021, 5, 10)], unit="week"),
                 make_column("B", [1]),
                 make_column("size", [1], format="{:,d}"),
             ),
+            [
+                RenderError(
+                    i18n_message(
+                        "group_dates.date_selected",
+                        dict(columns=1, column0="A", unit0="week"),
+                    )
+                )
+            ],
         ),
     )
 

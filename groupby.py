@@ -778,93 +778,88 @@ def _warn_if_using_deprecated_date_granularity(
     return errors
 
 
-def _warn_to_suggest_convert_to_date(
+def _generate_group_dates_help_warning(
     schema: pa.Schema, colnames: FrozenSet[str]
-) -> List[RenderError]:
-    fields = [field for field in schema if field.name in colnames]
-
-    # No warnings if the user is already grouping by date
-    if any((pa.types.is_date32(field.type) for field in fields)):
-        return []
-
-    # No warnings if the user did not select a column
-    if not fields:
-        return []
-
-    errors = []
-
+) -> RenderError:
     timestamp_colnames = []
     text_colnames = []
-    for field in fields:
-        if pa.types.is_timestamp(field.type):
+    date_colnames_and_units = []
+    for field in schema:
+        if field.name not in colnames:
+            continue
+
+        if pa.types.is_date32(field.type):
+            date_colnames_and_units.append(
+                (field.name, field.metadata[b"unit"].decode("ascii"))
+            )
+        elif pa.types.is_timestamp(field.type):
             timestamp_colnames.append(field.name)
         elif pa.types.is_string(field.type) or pa.types.is_dictionary(field.type):
             text_colnames.append(field.name)
 
+    if date_colnames_and_units:
+        return RenderError(
+            i18n.trans(
+                "group_dates.date_selected",
+                "“{column0}” is grouped by {unit0, select, day {day} week {week} month {month} quarter {quarter} year {year} other {}}. Edit earlier steps or use “Convert date unit” to change this.",
+                dict(
+                    columns=len(date_colnames_and_units),
+                    column0=date_colnames_and_units[0][0],
+                    unit0=date_colnames_and_units[0][1],
+                ),
+            )
+        )
     if timestamp_colnames:
-        errors.append(
-            RenderError(
-                i18n.trans(
-                    "group_dates.timestamp_selected",
-                    "{columns, plural, offset:1 =1 {“{column0}” is Timestamp.}=2 {“{column0}” and one other column are Timestamp.}other {“{column0}” and # other columns are Timestamp.}}",
-                    dict(
-                        columns=len(timestamp_colnames), column0=timestamp_colnames[0]
+        return RenderError(
+            i18n.trans(
+                "group_dates.timestamp_selected",
+                "{columns, plural, offset:1 =1 {“{column0}” is Timestamp.}=2 {“{column0}” and one other column are Timestamp.}other {“{column0}” and # other columns are Timestamp.}}",
+                dict(columns=len(timestamp_colnames), column0=timestamp_colnames[0]),
+            ),
+            [
+                QuickFix(
+                    i18n.trans(
+                        "group_dates.quick_fix.convert_timestamp_to_date",
+                        "Convert to Date",
                     ),
-                ),
-                [
-                    QuickFix(
-                        i18n.trans(
-                            "group_dates.quick_fix.convert_timestamp_to_date",
-                            "Convert to Date",
-                        ),
-                        QuickFixAction.PrependStep(
-                            "converttimestamptodate", dict(colnames=timestamp_colnames)
-                        ),
-                    )
-                ],
-            )
-        )
-    elif text_colnames:
-        errors.append(
-            RenderError(
-                i18n.trans(
-                    "group_dates.text_selected",
-                    "{columns, plural, offset:1 =1 {“{column0}” is Text.}=2 {“{column0}” and one other column are Text.}other {“{column0}” and # other columns are Text.}}",
-                    dict(columns=len(text_colnames), column0=text_colnames[0]),
-                ),
-                [
-                    QuickFix(
-                        i18n.trans(
-                            "group_dates.quick_fix.convert_text_to_date",
-                            "Convert to Date",
-                        ),
-                        QuickFixAction.PrependStep(
-                            "converttexttodate", dict(colnames=text_colnames)
-                        ),
+                    QuickFixAction.PrependStep(
+                        "converttimestamptodate", dict(colnames=timestamp_colnames)
                     ),
-                    QuickFix(
-                        i18n.trans(
-                            "group_dates.quick_fix.convert_text_to_timestamp",
-                            "Convert to Timestamp first",
-                        ),
-                        QuickFixAction.PrependStep(
-                            "convert-date", dict(colnames=text_colnames)
-                        ),
-                    ),
-                ],
-            )
-        )
-    else:
-        errors.append(
-            RenderError(
-                i18n.trans(
-                    "group_dates.select_date_columns",
-                    "Select a Date column, or uncheck “Group Dates”.",
                 )
-            )
+            ],
+        )
+    if text_colnames:
+        return RenderError(
+            i18n.trans(
+                "group_dates.text_selected",
+                "{columns, plural, offset:1 =1 {“{column0}” is Text.}=2 {“{column0}” and one other column are Text.}other {“{column0}” and # other columns are Text.}}",
+                dict(columns=len(text_colnames), column0=text_colnames[0]),
+            ),
+            [
+                QuickFix(
+                    i18n.trans(
+                        "group_dates.quick_fix.convert_text_to_date",
+                        "Convert to Date",
+                    ),
+                    QuickFixAction.PrependStep(
+                        "converttexttodate", dict(colnames=text_colnames)
+                    ),
+                ),
+                QuickFix(
+                    i18n.trans(
+                        "group_dates.quick_fix.convert_text_to_timestamp",
+                        "Convert to Timestamp first",
+                    ),
+                    QuickFixAction.PrependStep(
+                        "convert-date", dict(colnames=text_colnames)
+                    ),
+                ),
+            ],
         )
 
-    return errors
+    return RenderError(
+        i18n.trans("group_dates.select_date_columns", "Select a Date column.")
+    )
 
 
 def render_arrow_v1(
@@ -950,9 +945,11 @@ def render_arrow_v1(
 
     errors = _warn_if_using_deprecated_date_granularity(table, groups)
     if not errors and params["groups"]["group_dates"]:
-        errors = _warn_to_suggest_convert_to_date(
-            table.schema, frozenset(group.colname for group in groups)
-        )
+        errors = [
+            _generate_group_dates_help_warning(
+                table.schema, frozenset(group.colname for group in groups)
+            )
+        ]
 
     result_table = groupby(table, groups, aggregations)
     return ArrowRenderResult(result_table, errors=errors)
