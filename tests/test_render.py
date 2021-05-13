@@ -9,7 +9,7 @@ from cjwmodule.types import QuickFix, QuickFixAction, RenderError
 
 from groupby import render_arrow_v1 as render
 
-P = param_factory(Path(__file__).parent.parent / "groupby.json")
+P = param_factory(Path(__file__).parent.parent / "groupby.yaml")
 
 
 # def test_defaults_count():

@@ -1,0 +1,28 @@
+name: Group
+id_name: groupby
+description: "Group rows by values within columns (also called pivot table). Calculate sum, averages, Min, Max and more for each group."
+category : Analyze
+icon: group
+help_url: modules/analyse/group
+param_schema:
+  groups:
+    type: dict
+    properties:
+      colnames: { type: multicolumn }
+      group_dates: { type: boolean }
+      date_granularities:
+        type: map
+        value_dtype: { type: string }
+  aggregations:
+    type: list
+    inner_dtype:
+      type: dict
+      properties:
+        operation: { type: string }
+        colname: { type: column }
+        outname: { type: string }
+parameters:
+- id_name: groups
+  type: custom
+- id_name: aggregations
+  type: custom

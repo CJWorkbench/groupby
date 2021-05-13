@@ -4,7 +4,7 @@ from cjwmodule.spec.testing import param_factory
 
 from groupby import migrate_params
 
-P = param_factory(Path(__file__).parent.parent / "groupby.json")
+P = param_factory(Path(__file__).parent.parent / "groupby.yaml")
 
 
 v1_defaults = {
