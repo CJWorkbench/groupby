@@ -304,7 +304,15 @@ def test_group_date_prompt_convert_text_to_date():
                             QuickFixAction.PrependStep(
                                 "converttexttodate", dict(colnames=["A", "B"])
                             ),
-                        )
+                        ),
+                        QuickFix(
+                            i18n_message(
+                                "group_dates.quick_fix.convert_text_to_timestamp"
+                            ),
+                            QuickFixAction.PrependStep(
+                                "convert-date", dict(colnames=["A", "B"])
+                            ),
+                        ),
                     ],
                 )
             ],
