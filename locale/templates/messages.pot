@@ -26,7 +26,7 @@ msgstr ""
 msgid "group_dates.granularity_deprecated.quick_fix.round_timestamps"
 msgstr ""
 
-#. default-message: “{column0}” is grouped by {unit0, select, day {day} week {week} month {month} quarter {quarter} year {year} other {}}. Edit earlier steps or use “Convert date unit” to change this.
+#. default-message: “{column0}” is Date – {unit0, select, day {day} week {week} month {month} quarter {quarter} year {year} other {}}. Edit earlier steps or use “Convert date unit” to change units.
 #: groupby.py:806
 msgid "group_dates.date_selected"
 msgstr ""

@@ -801,7 +801,7 @@ def _generate_group_dates_help_warning(
         return RenderError(
             i18n.trans(
                 "group_dates.date_selected",
-                "“{column0}” is grouped by {unit0, select, day {day} week {week} month {month} quarter {quarter} year {year} other {}}. Edit earlier steps or use “Convert date unit” to change this.",
+                "“{column0}” is Date – {unit0, select, day {day} week {week} month {month} quarter {quarter} year {year} other {}}. Edit earlier steps or use “Convert date unit” to change units.",
                 dict(
                     columns=len(date_colnames_and_units),
                     column0=date_colnames_and_units[0][0],
