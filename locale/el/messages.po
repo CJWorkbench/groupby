@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-05-13 15:03+0000\n"
+"POT-Creation-Date: 2021-05-31 14:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: el\n"
@@ -28,58 +28,58 @@ msgstr ""
 " Υπολογίστε άθροισμα, μέσους όρους, ελάχιστο, μέγιστο και άλλα για κάθε "
 "ομάδα."
 
-#: groupby.py:728
+#: groupby.py:735
 msgid "group_dates.granularity_deprecated.need_dates"
 msgstr ""
 
-#: groupby.py:734
+#: groupby.py:741
 msgid "group_dates.granularity_deprecated.quick_fix.convert_to_date"
 msgstr ""
 
-#: groupby.py:754
+#: groupby.py:761
 msgid "group_dates.granularity_deprecated.need_rounding"
 msgstr ""
 
-#: groupby.py:760
+#: groupby.py:767
 msgid "group_dates.granularity_deprecated.quick_fix.round_timestamps"
 msgstr ""
 
-#: groupby.py:806
+#: groupby.py:813
 msgid "group_dates.date_selected"
 msgstr ""
 
-#: groupby.py:817
+#: groupby.py:824
 msgid "group_dates.timestamp_selected"
 msgstr ""
 
-#: groupby.py:821
+#: groupby.py:828
 msgid "group_dates.quick_fix.convert_timestamp_to_date"
 msgstr ""
 
-#: groupby.py:836
+#: groupby.py:843
 msgid "group_dates.text_selected"
 msgstr ""
 
-#: groupby.py:840
+#: groupby.py:847
 msgid "group_dates.quick_fix.convert_text_to_date"
 msgstr ""
 
-#: groupby.py:849
+#: groupby.py:856
 msgid "group_dates.quick_fix.convert_text_to_timestamp"
 msgstr ""
 
-#: groupby.py:861
+#: groupby.py:868
 msgid "group_dates.select_date_columns"
 msgstr ""
 
-#: groupby.py:927
+#: groupby.py:934
 msgid "non_numeric_colnames.error"
 msgstr ""
 "{n_columns, plural, one {Η στήλη \"{first_colname}\" πρέπει να περιέχει} "
 "other {# στήλες (δείτε \"{first_colname}\") πρέπει να περιέχουν}} "
 "αριθμούς"
 
-#: groupby.py:933
+#: groupby.py:940
 msgid "non_numeric_colnames.quick_fix.text"
 msgstr "Μετατροπή"
 

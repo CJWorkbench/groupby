@@ -1,3 +1,9 @@
+2021-05-31
+----------
+
+* Make "Sum" of all-null return 0, not null.
+* Fix error on "Sum" of empty table without groups.
+
 2021-05-07
 ----------
 

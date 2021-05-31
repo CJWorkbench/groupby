@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Callable, Dict, FrozenSet, List, NamedTuple, Optional
+from typing import Any, Callable, Dict, FrozenSet, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 import pyarrow as pa
@@ -246,17 +246,19 @@ def first(*, array: pa.Array, group_splits: np.array, **kwargs) -> pa.Array:
 
 
 def build_ufunc_wrapper(
-    np_func: Callable[[Any], np.array], force_otype=None
+    np_func: Callable[[Any], np.array], force_otype=None, empty_group_means_null=True
 ) -> Callable[..., pa.Array]:
-    def call_ufunc(values: np.array, group_splits: np.array, otype, zero) -> np.array:
+    def call_ufunc(
+        values: np.array, group_splits: np.array, otype, zero
+    ) -> Tuple[np.array, np.array]:
         starts = np.append([0], group_splits)
         ends = np.append(group_splits, len(values))
         values = [
             zero if start == end else np_func(values[start:end])
             for start, end in zip(starts, ends)
         ]
-        nulls = starts == ends
-        return np.array(values, dtype=otype), nulls
+        empty_indices = starts == ends
+        return np.array(values, dtype=otype), empty_indices
 
     def ufunc_caller(*, array: pa.Array, group_splits: np.array, **kwargs) -> pa.Array:
         nonnull_splits = nonnull_group_splits(array, group_splits)
@@ -269,13 +271,19 @@ def build_ufunc_wrapper(
             zero = ""
         else:
             zero = otype.type()
-        np_result, np_nulls = call_ufunc(nonnull_values, nonnull_splits, otype, zero)
-        return pa.array(np_result, mask=np_nulls)
+        np_result, np_empty_indices = call_ufunc(
+            nonnull_values, nonnull_splits, otype, zero
+        )
+        if empty_group_means_null:
+            mask = np_empty_indices
+        else:
+            mask = None
+        return pa.array(np_result, mask=mask)
 
     return ufunc_caller
 
 
-sum = build_ufunc_wrapper(np.sum)
+sum = build_ufunc_wrapper(np.sum, empty_group_means_null=False)
 mean = build_ufunc_wrapper(np.mean, force_otype=np.dtype("float64"))
 median = build_ufunc_wrapper(np.median, force_otype=np.dtype("float64"))
 min = build_ufunc_wrapper(np.amin)
@@ -611,7 +619,7 @@ def groupby(
     sorting_table = make_sorting_table(simple_table, groups)
 
     sorted_groups, sorted_input_table, group_splits = make_sorted_groups(
-        sorting_table, table.select(needed_columns)
+        sorting_table, simple_table.select(needed_columns)
     )
 
     retval = sorted_groups.select(
@@ -653,18 +661,17 @@ def groupby(
                     median=median,
                     min=min,
                     max=max,
-                    nunique=nunique,
                 )[agg.operation.value]
                 array = sorted_input_table[agg.colname].chunks[0]
                 if pa.types.is_dictionary(sorted_input_table[agg.colname].type):
                     array = array.cast(pa.utf8())
-                array = ufunc(
-                    array=array,
-                    group_splits=group_splits,
-                )
+                array = ufunc(array=array, group_splits=group_splits)
                 if pa.types.is_dictionary(sorted_input_table[agg.colname].type):
                     array = array.cast(pa.utf8()).dictionary_encode()
                 input_field = sorted_input_table.schema.field(agg.colname)
+                if pa.types.is_null(array.type):
+                    # Zero-length table => this is how we choose the type
+                    array = array.cast(input_field.type)
                 if (
                     agg.operation
                     in {

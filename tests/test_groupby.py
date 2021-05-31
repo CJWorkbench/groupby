@@ -194,7 +194,7 @@ def test_aggregate_numbers_all_nulls():
             make_column("size", [1], pa.int64(), format="{:,d}"),  # int format
             make_column("nunique", [0], pa.int64(), format="{:,d}"),  # int format
             # TODO make "sum" int64
-            make_column("sum", [None], pa.int32(), format="{:d}"),  # format from B
+            make_column("sum", [0], pa.int32(), format="{:d}"),  # format from B
             make_column("mean", [None], pa.float64(), format="{:,}"),  # default format
             make_column(
                 "median", [None], pa.float64(), format="{:,}"
@@ -576,15 +576,77 @@ def test_aggregate_timestamp_by_year_DEPRECATED():
     )
 
 
-def test_zero_chunks():
+def test_zero_chunks_into_groups():
     assert_arrow_table_equals(
         groupby(
-            pa.table({"A": pa.chunked_array([], pa.utf8())}),
-            [Group("A", None)],
-            [Aggregation(Operation.SIZE, "", "size")],
+            pa.table(
+                [pa.chunked_array([], pa.utf8()), pa.chunked_array([], pa.int32())],
+                schema=pa.schema(
+                    [
+                        pa.field("text", pa.utf8()),
+                        pa.field("number", pa.int64(), metadata={"format": "{:,.2f}"}),
+                    ]
+                ),
+            ),
+            [Group("text", None)],
+            [
+                Aggregation(Operation.FIRST, "number", "first"),
+                Aggregation(Operation.MAX, "text", "max"),
+                Aggregation(Operation.MEAN, "number", "mean"),
+                Aggregation(Operation.MEDIAN, "number", "median"),
+                Aggregation(Operation.MIN, "number", "min"),
+                Aggregation(Operation.NUNIQUE, "text", "nunique"),
+                Aggregation(Operation.SIZE, "", "size"),
+                Aggregation(Operation.SUM, "number", "sum"),
+            ],
         ),
         make_table(
-            make_column("A", [], pa.utf8()),
+            make_column("text", [], pa.utf8()),
+            make_column("first", [], pa.int64(), format="{:,.2f}"),
+            make_column("max", [], pa.utf8()),
+            make_column("mean", [], pa.float64(), format="{:,}"),
+            make_column("median", [], pa.float64(), format="{:,}"),
+            make_column("min", [], pa.int64(), format="{:,.2f}"),
+            make_column("nunique", [], pa.int64(), format="{:,d}"),
             make_column("size", [], pa.int64(), format="{:,d}"),
+            make_column("sum", [], pa.int64(), format="{:,.2f}"),
+        ),
+    )
+
+
+def test_zero_chunks_functions():
+    # https://www.pivotaltracker.com/story/show/178332598
+    assert_arrow_table_equals(
+        groupby(
+            pa.table(
+                [pa.chunked_array([], pa.utf8()), pa.chunked_array([], pa.int32())],
+                schema=pa.schema(
+                    [
+                        pa.field("text", pa.utf8()),
+                        pa.field("number", pa.int64(), metadata={"format": "{:,.2f}"}),
+                    ]
+                ),
+            ),
+            [],
+            [
+                Aggregation(Operation.FIRST, "number", "first"),
+                Aggregation(Operation.MAX, "text", "max"),
+                Aggregation(Operation.MEAN, "number", "mean"),
+                Aggregation(Operation.MEDIAN, "number", "median"),
+                Aggregation(Operation.MIN, "number", "min"),
+                Aggregation(Operation.NUNIQUE, "text", "nunique"),
+                Aggregation(Operation.SIZE, "", "size"),
+                Aggregation(Operation.SUM, "number", "sum"),
+            ],
+        ),
+        make_table(
+            make_column("first", [None], pa.int64(), format="{:,.2f}"),
+            make_column("max", [None], pa.utf8()),
+            make_column("mean", [None], pa.float64(), format="{:,}"),
+            make_column("median", [None], pa.float64(), format="{:,}"),
+            make_column("min", [None], pa.int64(), format="{:,.2f}"),
+            make_column("nunique", [0], pa.int64(), format="{:,d}"),
+            make_column("size", [0], pa.int64(), format="{:,d}"),
+            make_column("sum", [0], pa.int64(), format="{:,.2f}"),
         ),
     )

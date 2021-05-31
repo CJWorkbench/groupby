@@ -7,67 +7,67 @@ msgid "_spec.description"
 msgstr ""
 
 #. default-message: The “Group Dates” feature has changed. Please click to upgrade from Timestamps to Dates. Workbench will force-upgrade in January 2022.
-#: groupby.py:728
+#: groupby.py:735
 msgid "group_dates.granularity_deprecated.need_dates"
 msgstr ""
 
 #. default-message: Upgrade
-#: groupby.py:734
+#: groupby.py:741
 msgid "group_dates.granularity_deprecated.quick_fix.convert_to_date"
 msgstr ""
 
 #. default-message: The “Group Dates” feature has changed. Please click to upgrade to Timestamp Math. Workbench will force-upgrade in January 2022.
-#: groupby.py:754
+#: groupby.py:761
 msgid "group_dates.granularity_deprecated.need_rounding"
 msgstr ""
 
 #. default-message: Upgrade
-#: groupby.py:760
+#: groupby.py:767
 msgid "group_dates.granularity_deprecated.quick_fix.round_timestamps"
 msgstr ""
 
 #. default-message: “{column0}” is Date – {unit0, select, day {day} week {week} month {month} quarter {quarter} year {year} other {}}. Edit earlier steps or use “Convert date unit” to change units.
-#: groupby.py:806
+#: groupby.py:813
 msgid "group_dates.date_selected"
 msgstr ""
 
 #. default-message: {columns, plural, offset:1 =1 {“{column0}” is Timestamp.}=2 {“{column0}” and one other column are Timestamp.}other {“{column0}” and # other columns are Timestamp.}}
-#: groupby.py:817
+#: groupby.py:824
 msgid "group_dates.timestamp_selected"
 msgstr ""
 
 #. default-message: Convert to Date
-#: groupby.py:821
+#: groupby.py:828
 msgid "group_dates.quick_fix.convert_timestamp_to_date"
 msgstr ""
 
 #. default-message: {columns, plural, offset:1 =1 {“{column0}” is Text.}=2 {“{column0}” and one other column are Text.}other {“{column0}” and # other columns are Text.}}
-#: groupby.py:836
+#: groupby.py:843
 msgid "group_dates.text_selected"
 msgstr ""
 
 #. default-message: Convert to Date
-#: groupby.py:840
+#: groupby.py:847
 msgid "group_dates.quick_fix.convert_text_to_date"
 msgstr ""
 
 #. default-message: Convert to Timestamp first
-#: groupby.py:849
+#: groupby.py:856
 msgid "group_dates.quick_fix.convert_text_to_timestamp"
 msgstr ""
 
 #. default-message: Select a Date column.
-#: groupby.py:861
+#: groupby.py:868
 msgid "group_dates.select_date_columns"
 msgstr ""
 
 #. default-message: {n_columns, plural, one {Column "{first_colname}"} other {# columns (see "{first_colname}")}} must be Numbers
-#: groupby.py:927
+#: groupby.py:934
 msgid "non_numeric_colnames.error"
 msgstr ""
 
 #. default-message: Convert
-#: groupby.py:933
+#: groupby.py:940
 msgid "non_numeric_colnames.quick_fix.text"
 msgstr ""
 
