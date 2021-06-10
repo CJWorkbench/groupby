@@ -170,6 +170,28 @@ def test_aggregate_numbers():
     )
 
 
+def test_sum_int8_does_not_overflow():
+    assert_arrow_table_equals(
+        groupby(
+            make_table(make_column("A", [127, 1], pa.int8(), format="{:d}")),
+            [],
+            [Aggregation(Operation.SUM, "A", "sum")],
+        ),
+        make_table(make_column("sum", [128], format="{:d}")),
+    )
+
+
+def test_sum_float():
+    assert_arrow_table_equals(
+        groupby(
+            make_table(make_column("A", [1.0, None, 3.0], format="{:d}")),
+            [],
+            [Aggregation(Operation.SUM, "A", "sum")],
+        ),
+        make_table(make_column("sum", [4.0], format="{:d}")),
+    )
+
+
 def test_aggregate_numbers_all_nulls():
     assert_arrow_table_equals(
         groupby(
@@ -193,8 +215,7 @@ def test_aggregate_numbers_all_nulls():
             make_column("A", [1], format="{:.2f}"),  # format from A
             make_column("size", [1], pa.int64(), format="{:,d}"),  # int format
             make_column("nunique", [0], pa.int64(), format="{:,d}"),  # int format
-            # TODO make "sum" int64
-            make_column("sum", [0], pa.int32(), format="{:d}"),  # format from B
+            make_column("sum", [0], pa.int64(), format="{:d}"),  # format from B
             make_column("mean", [None], pa.float64(), format="{:,}"),  # default format
             make_column(
                 "median", [None], pa.float64(), format="{:,}"

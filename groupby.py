@@ -1,5 +1,15 @@
 from enum import Enum
-from typing import Any, Callable, Dict, FrozenSet, List, NamedTuple, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 import pyarrow as pa
@@ -245,8 +255,39 @@ def first(*, array: pa.Array, group_splits: np.array, **kwargs) -> pa.Array:
     return nonnull_values.take(indices)  # taking index NULL gives NULL
 
 
+def iter_splits(splits: np.array, limit: int) -> Iterator[Tuple[int, int]]:
+    if len(splits):
+        yield (0, splits[0])
+        yield from zip(splits[0:], splits[1:])
+        yield (splits[-1], limit)
+    else:
+        yield (0, limit)
+
+
+def sum(*, array: pa.Array, group_splits: np.array, **kwargs) -> pa.Array:
+    if pa.types.is_integer(array.type):
+        array = array.cast(pa.int64())
+        zero = 0
+    else:
+        zero = 0.0
+
+    def arrow_sum_never_none(scalar: pa.Scalar):
+        if scalar.is_valid:
+            return scalar.as_py()
+        else:
+            return zero
+
+    return pa.array(
+        (
+            arrow_sum_never_none(pa.compute.sum(array[begin:end]))
+            for begin, end in iter_splits(group_splits, len(array))
+        ),
+        array.type,
+    )
+
+
 def build_ufunc_wrapper(
-    np_func: Callable[[Any], np.array], force_otype=None, empty_group_means_null=True
+    np_func: Callable[[Any], np.array], force_otype=None
 ) -> Callable[..., pa.Array]:
     def call_ufunc(
         values: np.array, group_splits: np.array, otype, zero
@@ -274,16 +315,11 @@ def build_ufunc_wrapper(
         np_result, np_empty_indices = call_ufunc(
             nonnull_values, nonnull_splits, otype, zero
         )
-        if empty_group_means_null:
-            mask = np_empty_indices
-        else:
-            mask = None
-        return pa.array(np_result, mask=mask)
+        return pa.array(np_result, mask=np_empty_indices)
 
     return ufunc_caller
 
 
-sum = build_ufunc_wrapper(np.sum, empty_group_means_null=False)
 mean = build_ufunc_wrapper(np.mean, force_otype=np.dtype("float64"))
 median = build_ufunc_wrapper(np.median, force_otype=np.dtype("float64"))
 min = build_ufunc_wrapper(np.amin)

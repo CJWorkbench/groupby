@@ -1,3 +1,8 @@
+2021-06-10
+----------
+
+* sum: prevent overflow (negative results) for numbers up to 2⁶³.
+
 2021-05-31
 ----------
 
